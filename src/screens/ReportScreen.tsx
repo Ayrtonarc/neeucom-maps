@@ -145,6 +145,10 @@ export default function ReportScreen() {
                 category === cat.value && { backgroundColor: cat.color, borderColor: cat.color },
               ]}
               onPress={() => setCategory(cat.value)}
+              accessibilityRole="radio"
+              accessibilityLabel={`${cat.label}`}
+              accessibilityHint={`Seleccionar tipo de barrera: ${cat.label}`}
+              accessibilityState={{ selected: category === cat.value }}
             >
               <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
               <Text
@@ -169,11 +173,21 @@ export default function ReportScreen() {
           value={description}
           onChangeText={setDescription}
           maxLength={300}
+          accessibilityLabel="Descripción de la barrera"
+          accessibilityHint="Describe brevemente el problema de accesibilidad. Máximo 300 caracteres"
         />
         <Text style={styles.charCount}>{description.length}/300</Text>
 
         <Text style={styles.sectionTitle}>Foto (opcional)</Text>
-        <Pressable style={styles.photoButton} onPress={pickPhoto} disabled={analyzing}>
+        <Pressable
+          style={styles.photoButton}
+          onPress={pickPhoto}
+          disabled={analyzing}
+          accessibilityRole="button"
+          accessibilityLabel={photoUri ? 'Cambiar foto' : 'Agregar foto'}
+          accessibilityHint={analyzing ? 'Gemini está analizando la imagen' : 'Abre cámara o galería. Gemini clasificará la barrera automáticamente'}
+          accessibilityState={{ disabled: analyzing, busy: analyzing }}
+        >
           {photoUri ? (
             <>
               <Image source={{ uri: photoUri }} style={styles.photoPreview} />
@@ -193,7 +207,11 @@ export default function ReportScreen() {
           )}
         </Pressable>
 
-        <Text style={styles.locationNote}>
+        <Text
+          style={styles.locationNote}
+          accessibilityLabel={locating ? 'Obteniendo ubicación GPS' : `Ubicación: latitud ${latitude.toFixed(5)}, longitud ${longitude.toFixed(5)}`}
+          accessibilityLiveRegion="polite"
+        >
           {locating
             ? '📍 Obteniendo ubicación GPS...'
             : `📍 ${prefillLat ? 'Punto del mapa' : 'GPS'}: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
@@ -203,6 +221,10 @@ export default function ReportScreen() {
           style={[styles.submitButton, submitting && { opacity: 0.6 }]}
           onPress={handleSubmit}
           disabled={submitting}
+          accessibilityRole="button"
+          accessibilityLabel="Enviar reporte"
+          accessibilityHint="Guarda el reporte en el mapa para que otros usuarios lo vean"
+          accessibilityState={{ disabled: submitting, busy: submitting }}
         >
           {submitting ? (
             <ActivityIndicator color="#fff" />

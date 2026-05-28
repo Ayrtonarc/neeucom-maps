@@ -26,37 +26,56 @@ export default function ReportDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={[styles.badge, { backgroundColor: info.color }]}>
+      <View
+        style={[styles.badge, { backgroundColor: info.color }]}
+        accessible
+        accessibilityLabel={`Tipo de barrera: ${info.label}`}
+        accessibilityRole="text"
+      >
         <Text style={styles.badgeEmoji}>{info.emoji}</Text>
         <Text style={styles.badgeLabel}>{info.label}</Text>
       </View>
 
       {report.photoUrl ? (
-        <Image source={{ uri: report.photoUrl }} style={styles.photo} />
+        <Image
+          source={{ uri: report.photoUrl }}
+          style={styles.photo}
+          accessibilityLabel={`Foto de la barrera: ${info.label}`}
+          accessibilityRole="image"
+        />
       ) : (
-        <View style={styles.noPhoto}>
+        <View
+          style={styles.noPhoto}
+          accessible
+          accessibilityLabel="Sin foto disponible"
+        >
           <Text style={styles.noPhotoText}>Sin foto</Text>
         </View>
       )}
 
-      <View style={styles.card}>
+      <View style={styles.card} accessible accessibilityLabel={`Descripción: ${report.description || 'Sin descripción'}`}>
         <Text style={styles.cardTitle}>Descripción</Text>
         <Text style={styles.cardBody}>{report.description || 'Sin descripción.'}</Text>
       </View>
 
-      <View style={styles.card}>
+      <View style={styles.card} accessible accessibilityLabel={`Ubicación GPS: latitud ${report.latitude.toFixed(5)}, longitud ${report.longitude.toFixed(5)}`}>
         <Text style={styles.cardTitle}>Ubicación</Text>
         <Text style={styles.cardBody}>
           {report.latitude.toFixed(5)}, {report.longitude.toFixed(5)}
         </Text>
       </View>
 
-      <View style={styles.card}>
+      <View style={styles.card} accessible accessibilityLabel={`Fecha de reporte: ${date}`}>
         <Text style={styles.cardTitle}>Fecha de reporte</Text>
         <Text style={styles.cardBody}>{date}</Text>
       </View>
 
-      <View style={[styles.statusBadge, { backgroundColor: report.verified ? '#1A73E8' : '#EA4335' }]}>
+      <View
+        style={[styles.statusBadge, { backgroundColor: report.verified ? '#1A73E8' : '#EA4335' }]}
+        accessible
+        accessibilityLabel={report.verified ? 'Estado: verificado por la comunidad' : 'Estado: pendiente de verificación'}
+        accessibilityRole="text"
+      >
         <Text style={styles.statusText}>
           {report.verified ? '✅ Verificado por la comunidad' : '🕒 Pendiente de verificación'}
         </Text>

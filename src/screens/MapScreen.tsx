@@ -65,6 +65,7 @@ export default function MapScreen() {
             title={categoryInfo[report.category]?.label ?? report.category}
             description={report.description}
             pinColor={report.verified ? '#1A73E8' : '#EA4335'}
+            accessibilityLabel={`Barrera: ${categoryInfo[report.category]?.label ?? report.category}. ${report.verified ? 'Verificada' : 'Sin verificar'}. ${report.description}`}
             onCalloutPress={() =>
               navigation.navigate('ReportDetail', { report })
             }
@@ -73,7 +74,12 @@ export default function MapScreen() {
       </MapView>
 
       {loading && (
-        <View style={styles.loadingOverlay}>
+        <View
+          style={styles.loadingOverlay}
+          accessible
+          accessibilityLabel="Cargando mapa de barreras"
+          accessibilityLiveRegion="polite"
+        >
           <ActivityIndicator size="large" color="#1A73E8" />
           <Text style={styles.loadingText}>Cargando mapa…</Text>
         </View>
@@ -83,12 +89,20 @@ export default function MapScreen() {
       <Pressable
         style={styles.fab}
         onPress={() => navigation.navigate('Report', undefined)}
+        accessibilityRole="button"
+        accessibilityLabel="Reportar nueva barrera"
+        accessibilityHint="Abre el formulario para reportar una barrera de accesibilidad"
       >
         <Text style={styles.fabText}>+ Reportar</Text>
       </Pressable>
 
       {/* Leyenda */}
-      <View style={styles.legend}>
+      <View
+        style={styles.legend}
+        accessible
+        accessibilityLabel="Leyenda: punto rojo es sin verificar, punto azul es verificado. Mantén presionado el mapa para reportar una barrera."
+        importantForAccessibility="yes"
+      >
         <View style={styles.legendRow}>
           <View style={[styles.dot, { backgroundColor: '#EA4335' }]} />
           <Text style={styles.legendLabel}>Sin verificar</Text>
