@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "878924607507",
+    "project_id": "nmaps-9f51e",
+    "storage_bucket": "nmaps-9f51e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878924607507:android:50034d208c856b6307cfe6",
+        "android_client_info": {
+          "package_name": "com.niukommaps"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-8ogvpTbzDmPUaywM0Qd9SGTNx_-MbPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,17 +1,15 @@
-// ⚠️ Reemplaza estos valores con los de tu proyecto Firebase
-// https://console.firebase.google.com → Configuración del proyecto
 export const FIREBASE_CONFIG = {
-  apiKey: 'TU_API_KEY',
-  authDomain: 'TU_PROJECT.firebaseapp.com',
-  projectId: 'TU_PROJECT_ID',
-  storageBucket: 'TU_PROJECT.appspot.com',
-  messagingSenderId: 'TU_SENDER_ID',
-  appId: 'TU_APP_ID',
+  apiKey: 'AIzaSyCH74t0TwyA4cJDKobvlRSS5aJE9lppfGc',
+  authDomain: 'nmaps-9f51e.firebaseapp.com',
+  projectId: 'nmaps-9f51e',
+  storageBucket: 'nmaps-9f51e.firebasestorage.app',
+  messagingSenderId: '878924607507',
+  appId: '1:878924607507:web:bca7e95a76446e9907cfe6',
 };
 
 // ⚠️ Clave de Google Maps para Android
 // Actívala en Google Cloud Console → Maps SDK for Android
-export const GOOGLE_MAPS_API_KEY = 'TU_GOOGLE_MAPS_API_KEY';
+export const GOOGLE_MAPS_API_KEY = 'AIzaSyC5Apa7LXujYjuI2ZYbcg1WS7pSQCO9XXs';
 
 // Coordenadas iniciales: IMSS Tijuana (referencia)
 export const TIJUANA_INITIAL_REGION = {
