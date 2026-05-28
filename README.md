@@ -1,3 +1,59 @@
+# NiukomMaps
+
+Proyecto React Native inicializado en esta máquina. Instrucciones rápidas para ejecutar en Android.
+## Requisitos mínimos
+- Node.js (recomendado >= 22.11)
+- Java JDK y Android SDK (Android Studio recomendado)
+- Un emulador Android (AVD) o un dispositivo físico conectado
+## Comandos básicos
+Ejecuta desde la raíz del proyecto:
+
+```bash
+# Instalar dependencias
+npm install
+
+# Iniciar Metro (bundler)
+npx react-native start
+
+# Construir e instalar en Android (con emulador o dispositivo conectado)
+npx react-native run-android
+
+# Ejecutar en iOS (macOS, requiere CocoaPods)
+npx react-native run-ios
+```
+## Arrancar un emulador (CLI)
+Si tu SDK está en `~/Library/Android/sdk` y tienes un AVD llamado `Small_Phone`:
+
+```bash
+~/Library/Android/sdk/emulator/emulator -avd Small_Phone
+```
+
+También puedes usar Android Studio → AVD Manager.
+## Variables de entorno recomendadas
+```bash
+export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+```
+
+## Logs y depuración
+- Ver logs del dispositivo/emulador:
+
+```bash
+adb logcat
+```
+
+- Reiniciar Metro con caché limpio:
+
+```bash
+npx react-native start --reset-cache
+```
+
+## Notas
+- En esta máquina la app ya fue probada y lanzada en un emulador Android (AVD `Small_Phone`).
+- Para iOS, instala CocoaPods dentro de la carpeta `ios/` si quieres ejecutar en simulador.
+
+Si quieres, puedo añadir secciones adicionales (firma de release, integración CI, o scripts adicionales).
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
