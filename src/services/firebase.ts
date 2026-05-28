@@ -55,8 +55,10 @@ export async function createReport(data: {
     try {
       const { updateDoc, doc } = await import('firebase/firestore');
       const photoUrl = await uploadReportPhoto(data.photoLocalUri, docRef.id);
+      console.log('[Firebase] foto subida OK:', photoUrl);
       await updateDoc(doc(db, REPORTS_COLLECTION, docRef.id), { photoUrl });
-    } catch (_) {
+    } catch (err) {
+      console.error('[Firebase] error subiendo foto:', err);
       // La foto falla sin romper el reporte
     }
   }
@@ -79,6 +81,8 @@ export function subscribeToReports(
       id: d.id,
       ...(d.data() as Omit<BarrierReport, 'id'>),
     }));
+    const withPhoto = reports.filter(r => r.photoUrl).length;
+    console.log(`[Firebase] reportes: ${reports.length} totales, ${withPhoto} con foto`);
     callback(reports);
   });
 }

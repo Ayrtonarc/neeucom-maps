@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Geolocation from '@react-native-community/geolocation';
@@ -30,6 +30,7 @@ export default function MapScreen() {
   const [loadingImss, setLoadingImss] = useState(false);
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [selectedReport, setSelectedReport] = useState<BarrierReport | null>(null);
 
   // Rastrear ubicación del usuario para el botón FAB
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function MapScreen() {
         showsUserLocation
         showsMyLocationButton
         onLongPress={handleMapLongPress}
+        onPress={() => setSelectedReport(null)}
       >
         {reports.map(report => {
           const info = categoryInfo[report.category];
@@ -98,24 +100,8 @@ export default function MapScreen() {
               coordinate={{ latitude: report.latitude, longitude: report.longitude }}
               pinColor={report.verified ? '#611232' : '#EA4335'}
               accessibilityLabel={`Barrera: ${info?.label ?? report.category}. ${report.verified ? 'Verificada' : 'Sin verificar'}. ${report.description}`}
-            >
-              <Callout onPress={() => navigation.navigate('ReportDetail', { report })}>
-                <View style={styles.callout}>
-                  {report.photoUrl ? (
-                    <Image source={{ uri: report.photoUrl }} style={styles.calloutThumb} />
-                  ) : null}
-                  <Text style={styles.calloutTitle} numberOfLines={1}>
-                    {info?.emoji} {info?.label ?? report.category}
-                  </Text>
-                  <Text style={styles.calloutDesc} numberOfLines={2}>
-                    {report.description || 'Sin descripción'}
-                  </Text>
-                  <Text style={styles.calloutHint}>
-                    {report.verified ? '✔️ Verificado' : '🕔 Sin verificar'} · Ver detalle →
-                  </Text>
-                </View>
-              </Callout>
-            </Marker>
+              onPress={() => setSelectedReport(report)}
+            />
           );
         })}
 
@@ -204,6 +190,54 @@ export default function MapScreen() {
         )}
         <Text style={styles.legendHint}>Mantén presionado para reportar</Text>
       </View>
+
+      {/* Tarjeta flotante — reemplaza Callout nativo para soportar imágenes en Android */}
+      {selectedReport ? (() => {
+        const info = categoryInfo[selectedReport.category];
+        return (
+          <View style={styles.floatingCard} pointerEvents="box-none">
+            {selectedReport.photoUrl ? (
+              <Image
+                source={{ uri: selectedReport.photoUrl }}
+                style={styles.floatingThumb}
+                resizeMode="cover"
+              />
+            ) : null}
+            <View style={styles.floatingBody}>
+              <Text style={styles.floatingTitle} numberOfLines={1}>
+                {info?.emoji} {info?.label ?? selectedReport.category}
+              </Text>
+              <Text style={styles.floatingDesc} numberOfLines={2}>
+                {selectedReport.description || 'Sin descripción'}
+              </Text>
+              <Text style={styles.floatingStatus}>
+                {selectedReport.verified ? '✔️ Verificado' : '🕔 Sin verificar'}
+              </Text>
+            </View>
+            <View style={styles.floatingActions}>
+              <Pressable
+                style={styles.floatingBtn}
+                onPress={() => {
+                  setSelectedReport(null);
+                  navigation.navigate('ReportDetail', { report: selectedReport });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Ver detalle del reporte"
+              >
+                <Text style={styles.floatingBtnText}>Ver detalle →</Text>
+              </Pressable>
+              <Pressable
+                style={styles.floatingClose}
+                onPress={() => setSelectedReport(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar tarjeta"
+              >
+                <Text style={styles.floatingCloseText}>✕</Text>
+              </Pressable>
+            </View>
+          </View>
+        );
+      })() : null}
     </View>
   );
 }
@@ -273,19 +307,52 @@ const styles = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: 5 },
   legendLabel: { fontSize: 12, color: '#333' },
   legendHint: { fontSize: 10, color: '#888', marginTop: 4 },
-  callout: {
-    width: 200,
-    padding: 8,
+  floatingCard: {
+    position: 'absolute',
+    bottom: 110,
+    left: 16,
+    right: 16,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    overflow: 'hidden',
+  },
+  floatingThumb: {
+    width: '100%',
+    height: 160,
+  },
+  floatingBody: {
+    padding: 12,
     gap: 4,
   },
-  calloutThumb: {
-    width: '100%',
-    height: 110,
-    borderRadius: 8,
-    marginBottom: 4,
-    resizeMode: 'cover',
+  floatingTitle: { fontSize: 15, fontWeight: '700', color: '#222' },
+  floatingDesc: { fontSize: 13, color: '#555', lineHeight: 18 },
+  floatingStatus: { fontSize: 12, color: '#888', marginTop: 2 },
+  floatingActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
-  calloutTitle: { fontSize: 13, fontWeight: '700', color: '#222' },
-  calloutDesc: { fontSize: 11, color: '#555', lineHeight: 15 },
-  calloutHint: { fontSize: 10, color: '#611232', marginTop: 4, textAlign: 'right' },
+  floatingBtn: {
+    backgroundColor: '#611232',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  floatingBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  floatingClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingCloseText: { fontSize: 16, color: '#555' },
 });
