@@ -89,6 +89,7 @@ export default function MapScreen() {
       <Pressable
         style={styles.fab}
         onPress={() => navigation.navigate('Report', undefined)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         accessibilityRole="button"
         accessibilityLabel="Reportar nueva barrera"
         accessibilityHint="Abre el formulario para reportar una barrera de accesibilidad"
@@ -133,10 +134,14 @@ const styles = StyleSheet.create({
     bottom: 32,
     right: 20,
     backgroundColor: '#1A73E8',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    minHeight: 56,
+    minWidth: 48,
     borderRadius: 30,
     elevation: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.25,
     shadowRadius: 6,
