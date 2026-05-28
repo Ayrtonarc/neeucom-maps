@@ -28,9 +28,9 @@ function MainTabs() {
         tabBarIcon: ({ focused }) => (
           <TabIcon label={route.name} focused={focused} />
         ),
-        tabBarActiveTintColor: '#1A73E8',
+        tabBarActiveTintColor: '#611232',
         tabBarInactiveTintColor: '#888',
-        headerStyle: { backgroundColor: '#1A73E8' },
+        headerStyle: { backgroundColor: '#611232' },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
         tabBarStyle: { paddingBottom: 6, height: 60 },
@@ -60,7 +60,7 @@ export default function AppNavigator() {
           component={ReportScreen}
           options={{
             title: 'Nueva Barrera',
-            headerStyle: { backgroundColor: '#1A73E8' },
+            headerStyle: { backgroundColor: '#611232' },
             headerTintColor: '#fff',
           }}
         />
@@ -69,7 +69,7 @@ export default function AppNavigator() {
           component={ReportDetailScreen}
           options={{
             title: 'Detalle del Reporte',
-            headerStyle: { backgroundColor: '#1A73E8' },
+            headerStyle: { backgroundColor: '#611232' },
             headerTintColor: '#fff',
           }}
         />

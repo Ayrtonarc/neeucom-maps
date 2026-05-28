@@ -71,7 +71,7 @@ export default function ReportDetailScreen() {
       </View>
 
       <View
-        style={[styles.statusBadge, { backgroundColor: report.verified ? '#1A73E8' : '#EA4335' }]}
+        style={[styles.statusBadge, { backgroundColor: report.verified ? '#611232' : '#EA4335' }]}
         accessible
         accessibilityLabel={report.verified ? 'Estado: verificado por la comunidad' : 'Estado: pendiente de verificación'}
         accessibilityRole="text"
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     gap: 6,
   },
-  cardTitle: { fontSize: 12, fontWeight: '700', color: '#1A73E8', textTransform: 'uppercase' },
+  cardTitle: { fontSize: 12, fontWeight: '700', color: '#611232', textTransform: 'uppercase' },
   cardBody: { fontSize: 14, color: '#333', lineHeight: 20 },
   statusBadge: {
     borderRadius: 10,

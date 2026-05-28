@@ -64,7 +64,7 @@ export default function MapScreen() {
             coordinate={{ latitude: report.latitude, longitude: report.longitude }}
             title={categoryInfo[report.category]?.label ?? report.category}
             description={report.description}
-            pinColor={report.verified ? '#1A73E8' : '#EA4335'}
+            pinColor={report.verified ? '#611232' : '#EA4335'}
             accessibilityLabel={`Barrera: ${categoryInfo[report.category]?.label ?? report.category}. ${report.verified ? 'Verificada' : 'Sin verificar'}. ${report.description}`}
             onCalloutPress={() =>
               navigation.navigate('ReportDetail', { report })
@@ -80,7 +80,7 @@ export default function MapScreen() {
           accessibilityLabel="Cargando mapa de barreras"
           accessibilityLiveRegion="polite"
         >
-          <ActivityIndicator size="large" color="#1A73E8" />
+          <ActivityIndicator size="large" color="#611232" />
           <Text style={styles.loadingText}>Cargando mapa…</Text>
         </View>
       )}
@@ -109,7 +109,7 @@ export default function MapScreen() {
           <Text style={styles.legendLabel}>Sin verificar</Text>
         </View>
         <View style={styles.legendRow}>
-          <View style={[styles.dot, { backgroundColor: '#1A73E8' }]} />
+          <View style={[styles.dot, { backgroundColor: '#611232' }]} />
           <Text style={styles.legendLabel}>Verificado</Text>
         </View>
         <Text style={styles.legendHint}>Mantén presionado para reportar</Text>
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 32,
     right: 20,
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#611232',
     paddingHorizontal: 24,
     paddingVertical: 14,
     minHeight: 56,

@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1A73E8',
+    color: '#611232',
     marginTop: 16,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -306,13 +306,13 @@ const styles = StyleSheet.create({
   locationNote: {
     fontSize: 12,
     color: '#666',
-    backgroundColor: '#e8f0fe',
+    backgroundColor: '#f9e8ed',
     borderRadius: 8,
     padding: 10,
     marginTop: 8,
   },
   submitButton: {
-    backgroundColor: '#1A73E8',
+    backgroundColor: '#611232',
     borderRadius: 12,
     paddingVertical: 16,
     minHeight: 56,
