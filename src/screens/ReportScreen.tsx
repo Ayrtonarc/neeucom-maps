@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import Geolocation from '@react-native-community/geolocation';
 
 import { createReport } from '../services/firebase';
+import { classifyBarrierPhoto } from '../services/gemini';
 import { categories } from '../components/CategoryInfo';
 import type { ReportCategory, RootStackParamList } from '../types';
 
@@ -25,13 +27,39 @@ export default function ReportScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteType>();
 
-  const prefillLat = route.params?.latitude ?? 32.5049;
-  const prefillLng = route.params?.longitude ?? -117.0038;
+  const prefillLat = route.params?.latitude;
+  const prefillLng = route.params?.longitude;
 
   const [category, setCategory] = useState<ReportCategory>('banqueta_rota');
   const [description, setDescription] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [latitude, setLatitude] = useState<number>(prefillLat ?? 32.5049);
+  const [longitude, setLongitude] = useState<number>(prefillLng ?? -117.0038);
+  const [locating, setLocating] = useState(!prefillLat);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  useEffect(() => {
+    // Si el usuario ya eligió un punto en el mapa, usarlo directamente
+    if (prefillLat && prefillLng) {
+      setLatitude(prefillLat);
+      setLongitude(prefillLng);
+      return;
+    }
+    // Si no, obtener GPS real del dispositivo
+    Geolocation.getCurrentPosition(
+      pos => {
+        setLatitude(pos.coords.latitude);
+        setLongitude(pos.coords.longitude);
+        setLocating(false);
+      },
+      () => {
+        // Fallback silencioso a coordenadas de Tijuana
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
+  }, [prefillLat, prefillLng]);
 
   const pickPhoto = () => {
     Alert.alert('Agregar foto', 'Elige una opción', [
@@ -39,18 +67,38 @@ export default function ReportScreen() {
         text: 'Cámara',
         onPress: () =>
           launchCamera({ mediaType: 'photo', quality: 0.7 }, res => {
-            if (res.assets?.[0]?.uri) setPhotoUri(res.assets[0].uri!);
+            if (res.assets?.[0]?.uri) handlePhotoSelected(res.assets[0].uri!);
           }),
       },
       {
         text: 'Galería',
         onPress: () =>
           launchImageLibrary({ mediaType: 'photo', quality: 0.7 }, res => {
-            if (res.assets?.[0]?.uri) setPhotoUri(res.assets[0].uri!);
+            if (res.assets?.[0]?.uri) handlePhotoSelected(res.assets[0].uri!);
           }),
       },
       { text: 'Cancelar', style: 'cancel' },
     ]);
+  };
+
+  const handlePhotoSelected = async (uri: string) => {
+    setPhotoUri(uri);
+    setAnalyzing(true);
+    try {
+      const suggested = await classifyBarrierPhoto(uri);
+      if (suggested && suggested !== category) {
+        Alert.alert(
+          '🤖 Gemini sugiere',
+          `Parece una barrera de tipo "${categories.find(c => c.value === suggested)?.label}". ¿Deseas usar esta categoría?`,
+          [
+            { text: 'Sí, usar', onPress: () => setCategory(suggested) },
+            { text: 'No, mantener', style: 'cancel' },
+          ],
+        );
+      }
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -63,8 +111,8 @@ export default function ReportScreen() {
       await createReport({
         category,
         description: description.trim(),
-        latitude: prefillLat,
-        longitude: prefillLng,
+        latitude,
+        longitude,
         photoLocalUri: photoUri ?? undefined,
       });
       Alert.alert('¡Gracias!', 'Reporte enviado con éxito. Ayudas a mejorar Tijuana.', [
@@ -125,19 +173,30 @@ export default function ReportScreen() {
         <Text style={styles.charCount}>{description.length}/300</Text>
 
         <Text style={styles.sectionTitle}>Foto (opcional)</Text>
-        <Pressable style={styles.photoButton} onPress={pickPhoto}>
+        <Pressable style={styles.photoButton} onPress={pickPhoto} disabled={analyzing}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+            <>
+              <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+              {analyzing && (
+                <View style={styles.analyzingOverlay}>
+                  <ActivityIndicator color="#fff" size="large" />
+                  <Text style={styles.analyzingText}>Analizando con Gemini...</Text>
+                </View>
+              )}
+            </>
           ) : (
             <>
               <Text style={styles.photoIcon}>📷</Text>
               <Text style={styles.photoHint}>Toca para agregar foto</Text>
+              <Text style={styles.photoHint2}>Gemini clasificará automáticamente</Text>
             </>
           )}
         </Pressable>
 
         <Text style={styles.locationNote}>
-          📍 Ubicación: {prefillLat.toFixed(5)}, {prefillLng.toFixed(5)}
+          {locating
+            ? '📍 Obteniendo ubicación GPS...'
+            : `📍 ${prefillLat ? 'Punto del mapa' : 'GPS'}: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
         </Text>
 
         <Pressable
@@ -211,7 +270,16 @@ const styles = StyleSheet.create({
   },
   photoIcon: { fontSize: 36, marginBottom: 6 },
   photoHint: { fontSize: 13, color: '#aaa' },
+  photoHint2: { fontSize: 11, color: '#bbb', marginTop: 2 },
   photoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
+  analyzingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  analyzingText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   locationNote: {
     fontSize: 12,
     color: '#666',
