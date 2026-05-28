@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { TIJUANA_INITIAL_REGION } from '../config';
 import { subscribeToReports } from '../services/firebase';
+import { fetchOsmRamps, type OsmRamp } from '../services/overpass';
 import type { BarrierReport, RootStackParamList } from '../types';
 import { categoryInfo } from '../components/CategoryInfo';
 
@@ -22,6 +23,9 @@ export default function MapScreen() {
   const navigation = useNavigation<Nav>();
   const [reports, setReports] = useState<BarrierReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [osmRamps, setOsmRamps] = useState<OsmRamp[]>([]);
+  const [showOsm, setShowOsm] = useState(false);
+  const [loadingOsm, setLoadingOsm] = useState(false);
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
@@ -31,6 +35,21 @@ export default function MapScreen() {
     });
     return unsub;
   }, []);
+
+  const toggleOsmLayer = async () => {
+    if (!showOsm && osmRamps.length === 0) {
+      setLoadingOsm(true);
+      try {
+        const ramps = await fetchOsmRamps();
+        setOsmRamps(ramps);
+      } catch {
+        Alert.alert('Error', 'No se pudo cargar la capa de rampas OSM. Verifica tu conexión.');
+      } finally {
+        setLoadingOsm(false);
+      }
+    }
+    setShowOsm(prev => !prev);
+  };
 
   const handleMapLongPress = (e: any) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
@@ -71,6 +90,17 @@ export default function MapScreen() {
             }
           />
         ))}
+
+        {showOsm && osmRamps.map(ramp => (
+          <Marker
+            key={`osm-${ramp.id}`}
+            coordinate={{ latitude: ramp.lat, longitude: ramp.lon }}
+            title="Rampa accesible (OSM)"
+            description={ramp.tags?.kerb === 'lowered' ? 'Bordillo rebajado' : ramp.tags?.['ramp:wheelchair'] === 'yes' ? 'Rampa para silla de ruedas' : 'Cruce accesible'}
+            pinColor="#2E7D32"
+            accessibilityLabel={`Rampa existente de OpenStreetMap en esta ubicación`}
+          />
+        ))}
       </MapView>
 
       {loading && (
@@ -84,6 +114,22 @@ export default function MapScreen() {
           <Text style={styles.loadingText}>Cargando mapa…</Text>
         </View>
       )}
+
+      {/* Botón toggle capa OSM */}
+      <Pressable
+        style={[styles.osmToggle, showOsm && styles.osmToggleActive]}
+        onPress={toggleOsmLayer}
+        disabled={loadingOsm}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={showOsm ? 'Ocultar rampas de OpenStreetMap' : 'Mostrar rampas de OpenStreetMap'}
+        accessibilityState={{ busy: loadingOsm }}
+      >
+        {loadingOsm
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Text style={styles.osmToggleText}>{showOsm ? '🟢 Rampas OSM ✓' : '🟢 Rampas OSM'}</Text>
+        }
+      </Pressable>
 
       {/* Botón flotante para reportar */}
       <Pressable
@@ -101,7 +147,7 @@ export default function MapScreen() {
       <View
         style={styles.legend}
         accessible
-        accessibilityLabel="Leyenda: punto rojo es sin verificar, punto azul es verificado. Mantén presionado el mapa para reportar una barrera."
+        accessibilityLabel="Leyenda del mapa: rojo sin verificar, guinda verificado, verde rampa OSM existente. Mantén presionado para reportar."
         importantForAccessibility="yes"
       >
         <View style={styles.legendRow}>
@@ -112,6 +158,12 @@ export default function MapScreen() {
           <View style={[styles.dot, { backgroundColor: '#611232' }]} />
           <Text style={styles.legendLabel}>Verificado</Text>
         </View>
+        {showOsm && (
+          <View style={styles.legendRow}>
+            <View style={[styles.dot, { backgroundColor: '#2E7D32' }]} />
+            <Text style={styles.legendLabel}>Rampa OSM</Text>
+          </View>
+        )}
         <Text style={styles.legendHint}>Mantén presionado para reportar</Text>
       </View>
     </View>
@@ -129,6 +181,27 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: { color: '#333', fontSize: 15 },
+  osmToggle: {
+    position: 'absolute',
+    bottom: 104,
+    right: 20,
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 48,
+    borderRadius: 24,
+    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  osmToggleActive: {
+    backgroundColor: '#1B5E20',
+  },
+  osmToggleText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   fab: {
     position: 'absolute',
     bottom: 32,
