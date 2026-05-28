@@ -13,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { TIJUANA_INITIAL_REGION } from '../config';
 import { subscribeToReports } from '../services/firebase';
-import { fetchOsmRamps, type OsmRamp } from '../services/overpass';
+import { fetchImssHospitals, type ImssFacility } from '../services/places';
 import type { BarrierReport, RootStackParamList } from '../types';
 import { categoryInfo } from '../components/CategoryInfo';
 
@@ -23,9 +23,9 @@ export default function MapScreen() {
   const navigation = useNavigation<Nav>();
   const [reports, setReports] = useState<BarrierReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const [osmRamps, setOsmRamps] = useState<OsmRamp[]>([]);
-  const [showOsm, setShowOsm] = useState(false);
-  const [loadingOsm, setLoadingOsm] = useState(false);
+  const [imssFacilities, setImssFacilities] = useState<ImssFacility[]>([]);
+  const [showImss, setShowImss] = useState(false);
+  const [loadingImss, setLoadingImss] = useState(false);
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
@@ -36,19 +36,19 @@ export default function MapScreen() {
     return unsub;
   }, []);
 
-  const toggleOsmLayer = async () => {
-    if (!showOsm && osmRamps.length === 0) {
-      setLoadingOsm(true);
+  const toggleImssLayer = async () => {
+    if (!showImss && imssFacilities.length === 0) {
+      setLoadingImss(true);
       try {
-        const ramps = await fetchOsmRamps();
-        setOsmRamps(ramps);
-      } catch {
-        Alert.alert('Error', 'No se pudo cargar la capa de rampas OSM. Verifica tu conexión.');
+        const facilities = await fetchImssHospitals();
+        setImssFacilities(facilities);
+      } catch (err: any) {
+        Alert.alert('Error', `No se pudieron cargar los hospitales IMSS: ${err.message}`);
       } finally {
-        setLoadingOsm(false);
+        setLoadingImss(false);
       }
     }
-    setShowOsm(prev => !prev);
+    setShowImss(prev => !prev);
   };
 
   const handleMapLongPress = (e: any) => {
@@ -91,16 +91,26 @@ export default function MapScreen() {
           />
         ))}
 
-        {showOsm && osmRamps.map(ramp => (
-          <Marker
-            key={`osm-${ramp.id}`}
-            coordinate={{ latitude: ramp.lat, longitude: ramp.lon }}
-            title="Rampa accesible (OSM)"
-            description={ramp.tags?.kerb === 'lowered' ? 'Bordillo rebajado' : ramp.tags?.['ramp:wheelchair'] === 'yes' ? 'Rampa para silla de ruedas' : 'Cruce accesible'}
-            pinColor="#2E7D32"
-            accessibilityLabel={`Rampa existente de OpenStreetMap en esta ubicación`}
-          />
-        ))}
+        {showImss && imssFacilities.map(facility => {
+          const a11y = [
+            facility.wheelchairEntrance && '♿ Entrada accesible',
+            facility.wheelchairParking  && '🅿️ Estacionamiento accesible',
+            facility.wheelchairRestroom && '🚻 Baño accesible',
+          ].filter(Boolean);
+          const desc = a11y.length > 0
+            ? a11y.join(' · ')
+            : facility.address;
+          return (
+            <Marker
+              key={facility.place_id}
+              coordinate={{ latitude: facility.lat, longitude: facility.lng }}
+              title={facility.name}
+              description={desc}
+              pinColor="#0277BD"
+              accessibilityLabel={`Hospital IMSS: ${facility.name}. ${desc}`}
+            />
+          );
+        })}
       </MapView>
 
       {loading && (
@@ -115,19 +125,19 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Botón toggle capa OSM */}
+      {/* Botón toggle capa IMSS */}
       <Pressable
-        style={[styles.osmToggle, showOsm && styles.osmToggleActive]}
-        onPress={toggleOsmLayer}
-        disabled={loadingOsm}
+        style={[styles.imssToggle, showImss && styles.imssToggleActive]}
+        onPress={toggleImssLayer}
+        disabled={loadingImss}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         accessibilityRole="button"
-        accessibilityLabel={showOsm ? 'Ocultar rampas de OpenStreetMap' : 'Mostrar rampas de OpenStreetMap'}
-        accessibilityState={{ busy: loadingOsm }}
+        accessibilityLabel={showImss ? 'Ocultar hospitales IMSS' : 'Mostrar hospitales IMSS'}
+        accessibilityState={{ busy: loadingImss }}
       >
-        {loadingOsm
+        {loadingImss
           ? <ActivityIndicator size="small" color="#fff" />
-          : <Text style={styles.osmToggleText}>{showOsm ? '🟢 Rampas OSM ✓' : '🟢 Rampas OSM'}</Text>
+          : <Text style={styles.imssToggleText}>{showImss ? '🏥 IMSS ✓' : '🏥 IMSS'}</Text>
         }
       </Pressable>
 
@@ -147,7 +157,7 @@ export default function MapScreen() {
       <View
         style={styles.legend}
         accessible
-        accessibilityLabel="Leyenda del mapa: rojo sin verificar, guinda verificado, verde rampa OSM existente. Mantén presionado para reportar."
+        accessibilityLabel="Leyenda del mapa: rojo sin verificar, guinda verificado, azul hospital IMSS. Mantén presionado para reportar."
         importantForAccessibility="yes"
       >
         <View style={styles.legendRow}>
@@ -158,10 +168,10 @@ export default function MapScreen() {
           <View style={[styles.dot, { backgroundColor: '#611232' }]} />
           <Text style={styles.legendLabel}>Verificado</Text>
         </View>
-        {showOsm && (
+        {showImss && (
           <View style={styles.legendRow}>
-            <View style={[styles.dot, { backgroundColor: '#2E7D32' }]} />
-            <Text style={styles.legendLabel}>Rampa OSM</Text>
+            <View style={[styles.dot, { backgroundColor: '#0277BD' }]} />
+            <Text style={styles.legendLabel}>Hospital IMSS</Text>
           </View>
         )}
         <Text style={styles.legendHint}>Mantén presionado para reportar</Text>
@@ -181,11 +191,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: { color: '#333', fontSize: 15 },
-  osmToggle: {
+  imssToggle: {
     position: 'absolute',
     bottom: 104,
     right: 20,
-    backgroundColor: '#2E7D32',
+    backgroundColor: '#0277BD',
     paddingHorizontal: 16,
     paddingVertical: 10,
     minHeight: 48,
@@ -198,10 +208,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-  osmToggleActive: {
-    backgroundColor: '#1B5E20',
+  imssToggleActive: {
+    backgroundColor: '#01579B',
   },
-  osmToggleText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  imssToggleText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   fab: {
     position: 'absolute',
     bottom: 32,
