@@ -40,9 +40,13 @@ export async function classifyBarrierPhoto(
     ]);
 
     const raw = result.response.text().trim().toLowerCase();
+    console.log('[Gemini] respuesta raw:', raw);
     const matched = VALID_CATEGORIES.find(c => raw.includes(c));
-    return matched ?? 'otro';
-  } catch {
+    const classified = matched ?? 'otro';
+    console.log('[Gemini] categoría clasificada:', classified);
+    return classified;
+  } catch (err) {
+    console.error('[Gemini] error al clasificar imagen:', err);
     return null;
   }
 }

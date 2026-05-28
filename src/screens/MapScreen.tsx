@@ -11,6 +11,7 @@ import {
 import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Geolocation from '@react-native-community/geolocation';
 
 import { TIJUANA_INITIAL_REGION } from '../config';
 import { subscribeToReports } from '../services/firebase';
@@ -28,6 +29,17 @@ export default function MapScreen() {
   const [showImss, setShowImss] = useState(false);
   const [loadingImss, setLoadingImss] = useState(false);
   const mapRef = useRef<MapView>(null);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  // Rastrear ubicación del usuario para el botón FAB
+  useEffect(() => {
+    const watchId = Geolocation.watchPosition(
+      pos => setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000, distanceFilter: 10 },
+    );
+    return () => Geolocation.clearWatch(watchId);
+  }, []);
 
   useEffect(() => {
     const unsub = subscribeToReports(data => {
@@ -160,7 +172,7 @@ export default function MapScreen() {
       {/* Botón flotante para reportar */}
       <Pressable
         style={styles.fab}
-        onPress={() => navigation.navigate('Report', undefined)}
+        onPress={() => navigation.navigate('Report', userLocation ?? undefined)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         accessibilityRole="button"
         accessibilityLabel="Reportar nueva barrera"

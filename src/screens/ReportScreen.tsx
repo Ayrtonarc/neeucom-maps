@@ -224,16 +224,18 @@ export default function ReportScreen() {
         </Text>
 
         <Pressable
-          style={[styles.submitButton, submitting && { opacity: 0.6 }]}
+          style={[styles.submitButton, (submitting || locating) && { opacity: 0.6 }]}
           onPress={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || locating}
           accessibilityRole="button"
-          accessibilityLabel="Enviar reporte"
+          accessibilityLabel={locating ? 'Esperando GPS...' : 'Enviar reporte'}
           accessibilityHint="Guarda el reporte en el mapa para que otros usuarios lo vean"
-          accessibilityState={{ disabled: submitting, busy: submitting }}
+          accessibilityState={{ disabled: submitting || locating, busy: submitting }}
         >
           {submitting ? (
             <ActivityIndicator color="#fff" />
+          ) : locating ? (
+            <Text style={styles.submitText}>📍 Obteniendo GPS...</Text>
           ) : (
             <Text style={styles.submitText}>Enviar reporte</Text>
           )}

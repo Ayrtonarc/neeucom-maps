@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
       android:name=".MainApplication"
@@ -31,5 +32,15 @@
       <meta-data
         android:name="com.google.android.geo.API_KEY"
         android:value="${GOOGLE_MAPS_API_KEY}"/>
+      <!-- FileProvider: requerido por react-native-image-picker para cámara en Android 7+ -->
+      <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.provider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/file_provider_paths" />
+      </provider>
     </application>
 </manifest>
