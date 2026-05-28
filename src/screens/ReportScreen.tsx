@@ -46,19 +46,25 @@ export default function ReportScreen() {
       setLongitude(prefillLng);
       return;
     }
-    // Si no, obtener GPS real del dispositivo
-    Geolocation.getCurrentPosition(
+    // watchPosition es más confiable que getCurrentPosition en Android físico
+    const watchId = Geolocation.watchPosition(
       pos => {
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
         setLocating(false);
+        Geolocation.clearWatch(watchId);
       },
-      () => {
-        // Fallback silencioso a coordenadas de Tijuana
+      err => {
         setLocating(false);
+        Alert.alert(
+          '⚠️ No se pudo obtener tu ubicación',
+          `Error GPS: ${err.message}.\n\nPuedes volver al mapa, mantener presionado el punto exacto y se abrirá el formulario con esa ubicación.`,
+          [{ text: 'Entendido' }],
+        );
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000, distanceFilter: 0 },
     );
+    return () => Geolocation.clearWatch(watchId);
   }, [prefillLat, prefillLng]);
 
   const pickPhoto = () => {
@@ -213,7 +219,7 @@ export default function ReportScreen() {
           accessibilityLiveRegion="polite"
         >
           {locating
-            ? '📍 Obteniendo ubicación GPS...'
+            ? '📍 Obteniendo ubicación GPS... (puede tardar unos segundos)'
             : `📍 ${prefillLat ? 'Punto del mapa' : 'GPS'}: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
         </Text>
 
@@ -296,7 +302,7 @@ const styles = StyleSheet.create({
   photoHint2: { fontSize: 11, color: '#bbb', marginTop: 2 },
   photoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
   analyzingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
