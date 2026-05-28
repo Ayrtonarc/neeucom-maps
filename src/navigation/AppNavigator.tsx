@@ -1,0 +1,79 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Text } from 'react-native';
+
+import MapScreen from '../screens/MapScreen';
+import ReportScreen from '../screens/ReportScreen';
+import ReportDetailScreen from '../screens/ReportDetailScreen';
+import type { RootStackParamList, TabParamList } from '../types';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<TabParamList>();
+
+function TabIcon({ label, focused }: { label: string; focused: boolean }) {
+  const icons: Record<string, string> = { Mapa: '🗺️', Reportar: '📍' };
+  return (
+    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
+      {icons[label] ?? '●'}
+    </Text>
+  );
+}
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused }) => (
+          <TabIcon label={route.name} focused={focused} />
+        ),
+        tabBarActiveTintColor: '#1A73E8',
+        tabBarInactiveTintColor: '#888',
+        headerStyle: { backgroundColor: '#1A73E8' },
+        headerTintColor: '#fff',
+        headerTitleStyle: { fontWeight: 'bold' },
+        tabBarStyle: { paddingBottom: 6, height: 60 },
+      })}
+    >
+      <Tab.Screen
+        name="Mapa"
+        component={MapScreen}
+        options={{ title: 'Tijuana Sin Barreras' }}
+      />
+      <Tab.Screen
+        name="Reportar"
+        component={ReportScreen}
+        options={{ title: 'Reportar Barrera' }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+export default function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Tabs" component={MainTabs} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="Report"
+          component={ReportScreen}
+          options={{
+            title: 'Nueva Barrera',
+            headerStyle: { backgroundColor: '#1A73E8' },
+            headerTintColor: '#fff',
+          }}
+        />
+        <Stack.Screen
+          name="ReportDetail"
+          component={ReportDetailScreen}
+          options={{
+            title: 'Detalle del Reporte',
+            headerStyle: { backgroundColor: '#1A73E8' },
+            headerTintColor: '#fff',
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
