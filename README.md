@@ -1,153 +1,214 @@
-# NiukomMaps
+# NiukomMaps 🗺️
 
-Proyecto React Native inicializado en esta máquina. Instrucciones rápidas para ejecutar en Android.
-## Requisitos mínimos
-- Node.js (recomendado >= 22.11)
-- Java JDK y Android SDK (Android Studio recomendado)
-- Un emulador Android (AVD) o un dispositivo físico conectado
-## Comandos básicos
-Ejecuta desde la raíz del proyecto:
+App móvil de reporte participativo de barreras de accesibilidad urbana en Tijuana, desarrollada para el hackathon **Tijuana Sin Barreras**.
+
+> **Niukom** proviene del kumeyaay, lengua originaria de la región de Tijuana/San Diego, y significa "camino".
+
+---
+
+## ¿Qué hace?
+
+NiukomMaps permite a cualquier persona reportar obstáculos urbanos (banquetas rotas, rampas obstruidas, semáforos sin sonido, etc.) directamente desde su teléfono. Los reportes aparecen en tiempo real en un mapa compartido para que toda la comunidad pueda verlos.
+
+### Funcionalidades principales
+
+| Función | Descripción |
+|---------|-------------|
+| 🗺️ Mapa en tiempo real | Visualiza reportes activos con marcadores por categoría (rojo = sin verificar, azul = verificado) |
+| 📍 Reporte con GPS | Ubica la barrera automáticamente con coordenadas GPS reales |
+| 📸 Foto + IA | Sube una foto y Gemini Vision 1.5 Flash clasifica automáticamente el tipo de barrera |
+| ♿ Accesibilidad TalkBack | Toda la app está etiquetada para lectores de pantalla (TalkBack en Android) |
+| ☁️ Firebase en la nube | Los reportes se sincronizan en tiempo real vía Firestore + Storage |
+
+### Categorías de barreras
+
+- Banqueta rota / obstruida
+- Rampa en mal estado o ausente
+- Semáforo sin señal sonora
+- Estacionamiento indebido en zona accesible
+- Otro obstáculo
+
+---
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|------|------------|
+| Framework | React Native 0.85.3 (TypeScript, New Architecture) |
+| Mapas | react-native-maps con Google Maps API |
+| Base de datos | Firebase Firestore (tiempo real) |
+| Almacenamiento | Firebase Storage (fotos) |
+| Visión IA | Google Gemini 1.5 Flash (`@google/generative-ai`) |
+| Navegación | React Navigation (bottom tabs + native stack) |
+| Cámara | react-native-image-picker v8 |
+| Geolocalización | @react-native-community/geolocation |
+
+---
+
+## Requisitos previos
+
+- **Node.js** >= 22
+- **Java JDK** 17
+- **Android Studio** con Android SDK (API 33+)
+- Emulador Android o dispositivo físico conectado
+- Cuentas con claves API (ver sección Configuración)
+
+---
+
+## Instalación
 
 ```bash
-# Instalar dependencias
+# 1. Clonar el repositorio
+git clone https://github.com/Ayrtonarc/neeucom-maps.git
+cd neeucom-maps
+
+# 2. Instalar dependencias JS
 npm install
 
-# Iniciar Metro (bundler)
-npx react-native start
-
-# Construir e instalar en Android (con emulador o dispositivo conectado)
-npx react-native run-android
-
-# Ejecutar en iOS (macOS, requiere CocoaPods)
-npx react-native run-ios
-```
-## Arrancar un emulador (CLI)
-Si tu SDK está en `~/Library/Android/sdk` y tienes un AVD llamado `Small_Phone`:
-
-```bash
-~/Library/Android/sdk/emulator/emulator -avd Small_Phone
+# 3. Configurar claves secretas (ver sección siguiente)
 ```
 
-También puedes usar Android Studio → AVD Manager.
-## Variables de entorno recomendadas
+---
+
+## Configuración de claves API
+
+Este proyecto usa claves externas que **no están en el repositorio** por seguridad. Necesitas crearlas manualmente.
+
+### 1. Claves JS (Gemini + Firebase)
+
+Crea el archivo `src/config/secrets.ts` (ya está en `.gitignore`):
+
+```ts
+// src/config/secrets.ts
+export const GEMINI_API_KEY = 'TU_GEMINI_API_KEY';
+export const GOOGLE_MAPS_API_KEY = 'TU_GOOGLE_MAPS_API_KEY';
+
+export const FIREBASE_CONFIG = {
+  apiKey: 'TU_FIREBASE_API_KEY',
+  authDomain: 'TU_PROYECTO.firebaseapp.com',
+  projectId: 'TU_PROYECTO',
+  storageBucket: 'TU_PROYECTO.firebasestorage.app',
+  messagingSenderId: 'TU_SENDER_ID',
+  appId: 'TU_APP_ID',
+};
+```
+
+Usa `src/config/secrets.example.ts` como referencia.
+
+### 2. Clave de mapas para Android (build nativo)
+
+Añade tu clave en `android/local.properties` (ya está en `.gitignore`):
+
+```properties
+sdk.dir=/Users/TU_USUARIO/Library/Android/sdk
+GOOGLE_MAPS_API_KEY=TU_GOOGLE_MAPS_API_KEY
+```
+
+### 3. Google Services (Firebase nativo)
+
+Descarga `google-services.json` desde Firebase Console y colócalo en:
+```
+android/app/google-services.json
+```
+
+---
+
+## Ejecutar la app
+
 ```bash
+# Variables de entorno recomendadas (agregar a ~/.zshrc)
 export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
 export ANDROID_HOME="$HOME/Library/Android/sdk"
 export PATH="$ANDROID_SDK_ROOT/emulator:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+
+# Iniciar emulador (AVD llamado Small_Phone)
+~/Library/Android/sdk/emulator/emulator -avd Small_Phone
+
+# En otra terminal: iniciar Metro
+npx react-native start
+
+# En otra terminal: compilar e instalar en Android
+npx react-native run-android
 ```
 
-## Logs y depuración
-- Ver logs del dispositivo/emulador:
+---
 
-```bash
-adb logcat
+## Estructura del proyecto
+
+```
+src/
+├── config/
+│   ├── index.ts            # Re-exporta claves + constantes (región inicial Tijuana)
+│   ├── secrets.ts          # 🔒 GITIGNORED — claves API reales
+│   └── secrets.example.ts  # Plantilla pública de secrets.ts
+├── navigation/
+│   └── AppNavigator.tsx    # Bottom tabs (Mapa / Reportar) + stack
+├── screens/
+│   ├── MapScreen.tsx       # Mapa principal con marcadores en tiempo real
+│   ├── ReportScreen.tsx    # Formulario de reporte (GPS + Gemini)
+│   └── ReportDetailScreen.tsx  # Vista de detalle de un reporte
+├── services/
+│   ├── firebase.ts         # Firestore + Storage (upload, create, subscribe)
+│   └── gemini.ts           # Clasificación automática de fotos con Gemini Vision
+└── types/
+    └── index.ts            # Tipos TypeScript compartidos (Report, ReportCategory…)
 ```
 
-- Reiniciar Metro con caché limpio:
+---
+
+## Accesibilidad
+
+La app implementa soporte completo para **TalkBack** (lector de pantalla de Android):
+
+- Todos los botones tienen `accessibilityRole`, `accessibilityLabel` y `accessibilityHint`
+- Los chips de categoría usan `role="radio"` con estado `selected`
+- Los marcadores del mapa son accesibles con descripción de categoría y estado de verificación
+- La ubicación GPS usa `accessibilityLiveRegion="polite"` para anunciarse al cambiar
+- El botón de foto indica `busy: true` mientras Gemini analiza la imagen
+
+Para activar TalkBack en el emulador: **Configuración → Accesibilidad → TalkBack → Activar**
+
+---
+
+## Firebase — Reglas de Firestore
+
+Para desarrollo/demo, las reglas permiten acceso libre:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+```
+
+> ⚠️ Cambiar a reglas con autenticación antes de producción.
+
+---
+
+## Depuración
 
 ```bash
+# Ver logs del emulador
+adb logcat | grep -i niukom
+
+# Reiniciar Metro con caché limpio
 npx react-native start --reset-cache
+
+# Limpiar build de Android
+cd android && ./gradlew clean && cd ..
+
+# Verificar que la app está corriendo
+adb shell pidof com.niukommaps
 ```
 
-## Notas
-- En esta máquina la app ya fue probada y lanzada en un emulador Android (AVD `Small_Phone`).
-- Para iOS, instala CocoaPods dentro de la carpeta `ios/` si quieres ejecutar en simulador.
+---
 
-Si quieres, puedo añadir secciones adicionales (firma de release, integración CI, o scripts adicionales).
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+## Hackathon
 
-# Getting Started
+Este proyecto fue creado para el hackathon **Tijuana Sin Barreras**, enfocado en soluciones tecnológicas para mejorar la accesibilidad urbana en Tijuana, Baja California.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
-
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+**Repositorio:** [github.com/Ayrtonarc/neeucom-maps](https://github.com/Ayrtonarc/neeucom-maps)
