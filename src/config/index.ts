@@ -18,3 +18,5 @@ export const TIJUANA_INITIAL_REGION = {
   latitudeDelta: 0.04,
   longitudeDelta: 0.04,
 };
+
+// Gemini API Key — ver src/config/secrets.ts (gitignoreado)

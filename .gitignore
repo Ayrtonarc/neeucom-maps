@@ -77,3 +77,6 @@ yarn-error.log
 # Firebase
 firebase-debug.log
 firestore-debug.log
+
+# Secretos locales (claves reales)
+src/config/secrets.ts
