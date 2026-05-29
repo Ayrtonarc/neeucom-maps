@@ -2,23 +2,38 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList, TabParamList } from '../types';
 
 import MapScreen from '../screens/MapScreen';
 import ReportScreen from '../screens/ReportScreen';
 import ReportDetailScreen from '../screens/ReportDetailScreen';
 import StatsScreen from '../screens/StatsScreen';
-import type { RootStackParamList, TabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = { Mapa: '🗺️', Reportar: '📍', 'Estadísticas': '📊' };
+  const icons: Record<string, string> = { Mapa: '🗺️', Reportar: '📍' };
   return (
     <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
       {icons[label] ?? '●'}
     </Text>
+  );
+}
+
+function HamburgerButton() {
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  return (
+    <TouchableOpacity
+      onPress={() => nav.navigate('Stats')}
+      style={{ paddingHorizontal: 14, paddingVertical: 8 }}
+      accessibilityLabel="Abrir estadísticas"
+    >
+      <Text style={{ fontSize: 20, color: '#fff' }}>☰</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -40,17 +55,12 @@ function MainTabs() {
       <Tab.Screen
         name="Mapa"
         component={MapScreen}
-        options={{ title: 'Tijuana Sin Barreras' }}
+        options={{ title: 'Tijuana Sin Barreras', headerRight: () => <HamburgerButton /> }}
       />
       <Tab.Screen
         name="Reportar"
         component={ReportScreen}
         options={{ title: 'Reportar Barrera' }}
-      />
-      <Tab.Screen
-        name="Estadísticas"
-        component={StatsScreen}
-        options={{ title: 'Estadísticas' }}
       />
     </Tab.Navigator>
   );
@@ -66,6 +76,16 @@ export default function AppNavigator() {
           component={ReportScreen}
           options={{
             title: 'Nueva Barrera',
+            headerStyle: { backgroundColor: '#611232' },
+            headerTintColor: '#fff',
+          }}
+        />
+        <Stack.Screen
+          name="Stats"
+          component={StatsScreen}
+          options={{
+            title: 'Estadísticas',
+            presentation: 'modal',
             headerStyle: { backgroundColor: '#611232' },
             headerTintColor: '#fff',
           }}

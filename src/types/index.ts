@@ -22,12 +22,12 @@ export type RootStackParamList = {
   Tabs: undefined;
   Report: { latitude: number; longitude: number } | undefined;
   ReportDetail: { report: BarrierReport };
+  Stats: undefined;
 };
 
 export type TabParamList = {
   Mapa: undefined;
   Reportar: undefined;
-  Estadísticas: undefined;
 };
 
 export type MobilityProfile = 'wheelchair' | 'elderly' | 'stroller' | 'default';
