@@ -27,6 +27,7 @@ export type RootStackParamList = {
 export type TabParamList = {
   Mapa: undefined;
   Reportar: undefined;
+  Estadísticas: undefined;
 };
 
 export type MobilityProfile = 'wheelchair' | 'elderly' | 'stroller' | 'default';

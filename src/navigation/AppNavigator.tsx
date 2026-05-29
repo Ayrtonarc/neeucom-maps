@@ -7,13 +7,14 @@ import { Text } from 'react-native';
 import MapScreen from '../screens/MapScreen';
 import ReportScreen from '../screens/ReportScreen';
 import ReportDetailScreen from '../screens/ReportDetailScreen';
+import StatsScreen from '../screens/StatsScreen';
 import type { RootStackParamList, TabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  const icons: Record<string, string> = { Mapa: '🗺️', Reportar: '📍' };
+  const icons: Record<string, string> = { Mapa: '🗺️', Reportar: '📍', 'Estadísticas': '📊' };
   return (
     <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
       {icons[label] ?? '●'}
@@ -45,6 +46,11 @@ function MainTabs() {
         name="Reportar"
         component={ReportScreen}
         options={{ title: 'Reportar Barrera' }}
+      />
+      <Tab.Screen
+        name="Estadísticas"
+        component={StatsScreen}
+        options={{ title: 'Estadísticas' }}
       />
     </Tab.Navigator>
   );
