@@ -447,33 +447,37 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Botón toggle capa IMSS */}
-      <Pressable
-        style={[styles.imssToggle, showImss && styles.imssToggleActive]}
-        onPress={toggleImssLayer}
-        disabled={loadingImss}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel={showImss ? 'Ocultar hospitales IMSS' : 'Mostrar hospitales IMSS'}
-        accessibilityState={{ busy: loadingImss }}
-      >
-        {loadingImss
-          ? <ActivityIndicator size="small" color="#fff" />
-          : <Text style={styles.imssToggleText}>{showImss ? '🏥 IMSS ✓' : '🏥 IMSS'}</Text>
-        }
-      </Pressable>
+      {/* Botón toggle capa IMSS — oculto cuando hay tarjeta de hospital abierta */}
+      {!selectedImss && (
+        <Pressable
+          style={[styles.imssToggle, showImss && styles.imssToggleActive]}
+          onPress={toggleImssLayer}
+          disabled={loadingImss}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel={showImss ? 'Ocultar hospitales IMSS' : 'Mostrar hospitales IMSS'}
+          accessibilityState={{ busy: loadingImss }}
+        >
+          {loadingImss
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.imssToggleText}>{showImss ? '🏥 IMSS ✓' : '🏥 IMSS'}</Text>
+          }
+        </Pressable>
+      )}
 
-      {/* Botón flotante para reportar */}
-      <Pressable
-        style={styles.fab}
-        onPress={() => navigation.navigate('Report', userLocation ?? undefined)}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel="Reportar nueva barrera"
-        accessibilityHint="Abre el formulario para reportar una barrera de accesibilidad"
-      >
-        <Text style={styles.fabText}>+ Reportar</Text>
-      </Pressable>
+      {/* Botón flotante para reportar — oculto cuando hay tarjeta de hospital abierta */}
+      {!selectedImss && (
+        <Pressable
+          style={styles.fab}
+          onPress={() => navigation.navigate('Report', userLocation ?? undefined)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityRole="button"
+          accessibilityLabel="Reportar nueva barrera"
+          accessibilityHint="Abre el formulario para reportar una barrera de accesibilidad"
+        >
+          <Text style={styles.fabText}>+ Reportar</Text>
+        </Pressable>
+      )}
 
       {/* Leyenda */}
       <View
