@@ -39,6 +39,7 @@ export default function MapScreen() {
   const [selectedImss, setSelectedImss] = useState<ImssFacility | null>(null);
   const [walkingRoute, setWalkingRoute] = useState<RouteResult | null>(null);
   const [transitRoute, setTransitRoute] = useState<TransitRouteResult | null>(null);
+  const [transitError, setTransitError] = useState<string | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [loadingTransit, setLoadingTransit] = useState(false);
 
@@ -90,6 +91,7 @@ export default function MapScreen() {
     setSelectedImss(facility);
     setWalkingRoute(null);
     setTransitRoute(null);
+    setTransitError(null);
     mapRef.current?.animateToRegion(
       { latitude: facility.lat, longitude: facility.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
       500,
@@ -129,6 +131,7 @@ export default function MapScreen() {
     }
     if (!selectedImss) return;
     setLoadingTransit(true);
+    setTransitError(null);
     try {
       const route = await getTransitRoute(
         userLocation,
@@ -141,7 +144,7 @@ export default function MapScreen() {
         animated: true,
       });
     } catch (err: any) {
-      Alert.alert('Sin rutas de transporte', err.message);
+      setTransitError(err.message ?? 'No se encontraron rutas de transporte.');
     } finally {
       setLoadingTransit(false);
     }
@@ -157,6 +160,7 @@ export default function MapScreen() {
     setSelectedImss(null);
     setWalkingRoute(null);
     setTransitRoute(null);
+    setTransitError(null);
   };
 
   const toggleImssLayer = async () => {
@@ -280,6 +284,7 @@ export default function MapScreen() {
       {/* Tarjeta de hospital IMSS seleccionado */}
       {selectedImss && (
         <View style={styles.routeCard}>
+          {/* Header: nombre + badges + cerrar */}
           <View style={styles.routeCardHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.routeCardTitle} numberOfLines={2}>{selectedImss.name}</Text>
@@ -295,94 +300,132 @@ export default function MapScreen() {
                     <View style={styles.a11yBadge}><Text style={styles.a11yBadgeText}>🚻 Baño</Text></View>
                   )}
                   {!selectedImss.wheelchairEntrance && !selectedImss.wheelchairParking && !selectedImss.wheelchairRestroom && (
-                    <View style={[styles.a11yBadge, { backgroundColor: '#eee' }]}><Text style={[styles.a11yBadgeText, { color: '#888' }]}>Sin datos de accesibilidad</Text></View>
+                    <View style={[styles.a11yBadge, { backgroundColor: '#eee' }]}>
+                      <Text style={[styles.a11yBadgeText, { color: '#888' }]}>Sin datos de accesibilidad</Text>
+                    </View>
                   )}
                 </View>
               </ScrollView>
             </View>
-            <Pressable onPress={handleCloseRoute} style={styles.closeBtnRoute} accessibilityLabel="Cerrar ruta">
+            <Pressable onPress={handleCloseRoute} style={styles.closeBtnRoute} accessibilityLabel="Cerrar">
               <Text style={{ fontSize: 18, color: '#555' }}>✕</Text>
             </Pressable>
           </View>
 
-          {/* Fila ruta a pie */}
-          {walkingRoute ? (
-            <View style={styles.routeResultRow}>
-              <View style={[styles.routeModeDot, { backgroundColor: '#611232' }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.routeResultText}>🚶 {walkingRoute.durationText} · {walkingRoute.distanceText}</Text>
-                <Text style={styles.routeResultSub}>Ruta peatonal accesible · evita carreteras</Text>
+          <ScrollView
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+            style={styles.routeCardScroll}
+          >
+            {/* ─── Sección A PIE ─── */}
+            <View style={styles.routeSection}>
+              <View style={styles.routeSectionHeader}>
+                <View style={[styles.routeModeDot, { backgroundColor: '#611232' }]} />
+                <Text style={styles.routeSectionLabel}>A PIE</Text>
+                {walkingRoute && !loadingRoute && (
+                  <Pressable onPress={handleCalculateRoute} style={styles.recalcBtn} accessibilityLabel="Recalcular ruta a pie">
+                    <Text style={styles.recalcBtnText}>↺ Recalcular</Text>
+                  </Pressable>
+                )}
               </View>
-              <Pressable onPress={() => handleOpenInMaps('walking')} accessibilityLabel="Abrir ruta a pie en Google Maps">
-                <Text style={styles.openMapsLink}>Maps ↗</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              style={[styles.routeBtnPrimary, loadingRoute && { opacity: 0.7 }]}
-              onPress={handleCalculateRoute}
-              disabled={loadingRoute}
-              accessibilityLabel="Calcular ruta accesible a pie"
-              accessibilityState={{ busy: loadingRoute }}
-            >
-              {loadingRoute
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.routeBtnPrimaryText}>♿ Ruta accesible a pie</Text>
-              }
-            </Pressable>
-          )}
 
-          {/* Fila transporte público */}
-          {transitRoute ? (
-            <View style={styles.transitBlock}>
-              <View style={styles.routeResultRow}>
-                <View style={[styles.routeModeDot, { backgroundColor: '#1565C0' }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.routeResultText}>🚌 {transitRoute.durationText} · {transitRoute.distanceText}</Text>
-                  {transitRoute.departureTime ? (
-                    <Text style={styles.routeResultSub}>Sale: {transitRoute.departureTime} → Llega: {transitRoute.arrivalTime}</Text>
-                  ) : null}
+              {walkingRoute ? (
+                <View style={styles.routeResultBox}>
+                  <Text style={styles.routeResultMain}>🚶 {walkingRoute.durationText}</Text>
+                  <Text style={styles.routeResultSub}>{walkingRoute.distanceText} · evita carreteras</Text>
+                  <Pressable onPress={() => handleOpenInMaps('walking')} accessibilityLabel="Abrir ruta a pie en Google Maps">
+                    <Text style={styles.openMapsLink}>Abrir en Google Maps ↗</Text>
+                  </Pressable>
                 </View>
-                <Pressable onPress={() => handleOpenInMaps('transit')} accessibilityLabel="Abrir ruta en transporte en Google Maps">
-                  <Text style={styles.openMapsLink}>Maps ↗</Text>
+              ) : (
+                <Pressable
+                  style={[styles.routeBtn, { backgroundColor: '#611232' }, loadingRoute && { opacity: 0.7 }]}
+                  onPress={handleCalculateRoute}
+                  disabled={loadingRoute}
+                  accessibilityLabel="Calcular ruta accesible a pie"
+                  accessibilityState={{ busy: loadingRoute }}
+                >
+                  {loadingRoute
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.routeBtnText}>♿ Calcular ruta accesible</Text>
+                  }
                 </Pressable>
-              </View>
-              {/* Pasos del transporte */}
-              <ScrollView style={styles.transitSteps} nestedScrollEnabled>
-                {transitRoute.steps.map((step, i) => (
-                  <View key={i} style={styles.transitStepRow}>
-                    <Text style={styles.transitStepIcon}>{step.vehicleIcon}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.transitStepText} numberOfLines={2}>
-                        {step.travelMode === 'TRANSIT'
-                          ? `${step.lineName}${step.headsign ? ` → ${step.headsign}` : ''}`
-                          : step.instruction}
-                      </Text>
-                      {step.numStops > 0 && (
-                        <Text style={styles.transitStepSub}>{step.numStops} paradas · {step.durationText}</Text>
-                      )}
-                      {step.numStops === 0 && (
-                        <Text style={styles.transitStepSub}>{step.durationText} · {step.distanceText}</Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
+              )}
             </View>
-          ) : (
-            <Pressable
-              style={[styles.routeBtnTransit, loadingTransit && { opacity: 0.7 }]}
-              onPress={handleCalculateTransit}
-              disabled={loadingTransit}
-              accessibilityLabel="Calcular ruta en transporte público"
-              accessibilityState={{ busy: loadingTransit }}
-            >
-              {loadingTransit
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.routeBtnPrimaryText}>🚌 Cómo llegar en camión</Text>
-              }
+
+            <View style={styles.sectionDivider} />
+
+            {/* ─── Sección CAMIÓN ─── */}
+            <View style={styles.routeSection}>
+              <View style={styles.routeSectionHeader}>
+                <View style={[styles.routeModeDot, { backgroundColor: '#1565C0' }]} />
+                <Text style={styles.routeSectionLabel}>CAMIÓN</Text>
+                {transitRoute && !loadingTransit && (
+                  <Pressable onPress={handleCalculateTransit} style={styles.recalcBtn} accessibilityLabel="Recalcular ruta en camión">
+                    <Text style={styles.recalcBtnText}>↺ Recalcular</Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {transitRoute ? (
+                <View>
+                  <View style={styles.routeResultBox}>
+                    <Text style={styles.routeResultMain}>🚌 {transitRoute.durationText}</Text>
+                    <Text style={styles.routeResultSub}>
+                      {transitRoute.distanceText}
+                      {transitRoute.departureTime ? ` · Sale: ${transitRoute.departureTime}` : ''}
+                    </Text>
+                    <Pressable onPress={() => handleOpenInMaps('transit')} accessibilityLabel="Abrir ruta en transporte en Google Maps">
+                      <Text style={styles.openMapsLink}>Abrir en Google Maps ↗</Text>
+                    </Pressable>
+                  </View>
+                  {/* Pasos */}
+                  {transitRoute.steps.map((step, i) => (
+                    <View key={i} style={styles.transitStepRow}>
+                      <Text style={styles.transitStepIcon}>{step.vehicleIcon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.transitStepText} numberOfLines={2}>
+                          {step.travelMode === 'TRANSIT'
+                            ? `${step.lineName}${step.headsign ? ` → ${step.headsign}` : ''}`
+                            : step.instruction}
+                        </Text>
+                        <Text style={styles.transitStepSub}>
+                          {step.numStops > 0
+                            ? `${step.numStops} paradas · ${step.durationText}`
+                            : `${step.durationText} · ${step.distanceText}`}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : transitError ? (
+                <View style={styles.transitErrorBox}>
+                  <Text style={styles.transitErrorText}>⚠️ {transitError}</Text>
+                  <Pressable onPress={() => handleOpenInMaps('transit')} accessibilityLabel="Ver transporte en Google Maps">
+                    <Text style={styles.openMapsLink}>Ver opciones en Google Maps ↗</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable
+                  style={[styles.routeBtn, { backgroundColor: '#1565C0' }, loadingTransit && { opacity: 0.7 }]}
+                  onPress={handleCalculateTransit}
+                  disabled={loadingTransit}
+                  accessibilityLabel="Calcular ruta en camión"
+                  accessibilityState={{ busy: loadingTransit }}
+                >
+                  {loadingTransit
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={styles.routeBtnText}>🚌 Cómo llegar en camión</Text>
+                  }
+                </Pressable>
+              )}
+            </View>
+
+            {/* Footer: cerrar */}
+            <Pressable style={styles.closeRouteFooter} onPress={handleCloseRoute} accessibilityLabel="Cerrar tarjeta del hospital">
+              <Text style={styles.closeRouteFooterText}>Cerrar</Text>
             </Pressable>
-          )}
+          </ScrollView>
         </View>
       )}
 
@@ -433,6 +476,18 @@ export default function MapScreen() {
           <View style={styles.legendRow}>
             <View style={[styles.dot, { backgroundColor: '#0277BD' }]} />
             <Text style={styles.legendLabel}>Hospital IMSS</Text>
+          </View>
+        )}
+        {walkingRoute && (
+          <View style={styles.legendRow}>
+            <View style={styles.legendDash} />
+            <Text style={styles.legendLabel}>Ruta a pie</Text>
+          </View>
+        )}
+        {transitRoute && (
+          <View style={styles.legendRow}>
+            <View style={[styles.dot, { backgroundColor: '#1565C0' }]} />
+            <Text style={styles.legendLabel}>Ruta camión</Text>
           </View>
         )}
         <Text style={styles.legendHint}>Mantén presionado para reportar</Text>
@@ -561,11 +616,43 @@ const styles = StyleSheet.create({
   },
   a11yBadgeText: { fontSize: 11, color: '#2E7D32', fontWeight: '600' },
   closeBtnRoute: { padding: 4 },
-  routeResultRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  routeCardScroll: { maxHeight: 280 },
+  routeSection: { paddingVertical: 8 },
+  routeSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  routeSectionLabel: { fontSize: 11, fontWeight: '800', color: '#555', letterSpacing: 0.8, flex: 1 },
   routeModeDot: { width: 10, height: 10, borderRadius: 5 },
+  recalcBtn: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: '#bbb' },
+  recalcBtnText: { fontSize: 11, color: '#555' },
+  routeResultBox: { gap: 2, marginBottom: 4 },
+  routeResultMain: { fontSize: 16, fontWeight: '700', color: '#222' },
+  routeResultSub: { fontSize: 12, color: '#777' },
+  openMapsLink: { fontSize: 12, color: '#1565C0', fontWeight: '700', marginTop: 4 },
+  routeBtn: {
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  routeBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  sectionDivider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 4 },
+  transitErrorBox: { backgroundColor: '#FFF3E0', borderRadius: 10, padding: 10, gap: 6 },
+  transitErrorText: { fontSize: 12, color: '#E65100' },
+  transitStepRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  transitStepIcon: { fontSize: 17, marginRight: 8, width: 24 },
+  transitStepText: { fontSize: 13, color: '#333', fontWeight: '500' },
+  transitStepSub: { fontSize: 11, color: '#888', marginTop: 1 },
+  closeRouteFooter: {
+    marginTop: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    alignItems: 'center',
+  },
+  closeRouteFooterText: { fontSize: 13, color: '#888', fontWeight: '600' },
+  // legacy — kept for unused refs safety
+  routeResultRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   routeResultText: { fontSize: 14, fontWeight: '700', color: '#333' },
-  routeResultSub: { fontSize: 11, color: '#777' },
-  openMapsLink: { fontSize: 12, color: '#1565C0', fontWeight: '700', marginLeft: 4 },
   routeInfo: { gap: 4 },
   routeInfoText: { fontSize: 15, fontWeight: '700', color: '#611232' },
   routeInfoSub: { fontSize: 11, color: '#777' },
@@ -599,8 +686,5 @@ const styles = StyleSheet.create({
   routeBtnSecondaryText: { color: '#611232', fontWeight: '700', fontSize: 13 },
   transitBlock: { marginTop: 2 },
   transitSteps: { maxHeight: 130, marginTop: 4 },
-  transitStepRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 5, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  transitStepIcon: { fontSize: 18, marginRight: 8, width: 24 },
-  transitStepText: { fontSize: 13, color: '#333', fontWeight: '500' },
-  transitStepSub: { fontSize: 11, color: '#888', marginTop: 1 },
+  legendDash: { width: 16, height: 4, backgroundColor: '#611232', borderRadius: 2, opacity: 0.7 },
 });

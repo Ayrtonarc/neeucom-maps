@@ -56,6 +56,18 @@ function decodePolyline(encoded: string): Array<{ latitude: number; longitude: n
   return coords;
 }
 
+/** Limpia las instrucciones HTML que devuelve Google Directions */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<b>(.*?)<\/b>/gi, '$1')
+    .replace(/<div[^>]*>(.*?)<\/div>/gi, ' $1')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 /**
  * Calcula ruta a pie entre dos puntos usando Google Directions API.
  * Usa modo WALKING para favorecer banquetas y pasos peatonales.
@@ -155,7 +167,7 @@ export async function getTransitRoute(
     return {
       travelMode: 'WALKING' as const,
       vehicleIcon: '🚶',
-      instruction: s.html_instructions?.replace(/<[^>]*>/g, '') ?? 'Camina',
+      instruction: stripHtml(s.html_instructions ?? 'Camina'),
       lineName: '',
       headsign: '',
       numStops: 0,
