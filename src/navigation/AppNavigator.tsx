@@ -11,6 +11,7 @@ import MapScreen from '../screens/MapScreen';
 import ReportScreen from '../screens/ReportScreen';
 import ReportDetailScreen from '../screens/ReportDetailScreen';
 import StatsScreen from '../screens/StatsScreen';
+import WalletScreen from '../screens/WalletScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -37,6 +38,19 @@ function HamburgerButton() {
   );
 }
 
+function WalletButton() {
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  return (
+    <TouchableOpacity
+      onPress={() => nav.navigate('Wallet')}
+      style={{ paddingHorizontal: 10, paddingVertical: 8 }}
+      accessibilityLabel="Abrir mi billetera NIUKOM"
+    >
+      <Text style={{ fontSize: 20 }}>🪙</Text>
+    </TouchableOpacity>
+  );
+}
+
 function MainTabs() {
   return (
     <Tab.Navigator
@@ -55,7 +69,15 @@ function MainTabs() {
       <Tab.Screen
         name="Mapa"
         component={MapScreen}
-        options={{ title: 'Tijuana Sin Barreras', headerRight: () => <HamburgerButton /> }}
+        options={{
+          title: 'Tijuana Sin Barreras',
+          headerRight: () => (
+            <>
+              <WalletButton />
+              <HamburgerButton />
+            </>
+          ),
+        }}
       />
       <Tab.Screen
         name="Reportar"
@@ -85,6 +107,16 @@ export default function AppNavigator() {
           component={StatsScreen}
           options={{
             title: 'Estadísticas',
+            presentation: 'modal',
+            headerStyle: { backgroundColor: '#611232' },
+            headerTintColor: '#fff',
+          }}
+        />
+        <Stack.Screen
+          name="Wallet"
+          component={WalletScreen}
+          options={{
+            title: 'Mi Billetera',
             presentation: 'modal',
             headerStyle: { backgroundColor: '#611232' },
             headerTintColor: '#fff',

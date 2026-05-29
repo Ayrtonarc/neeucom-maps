@@ -23,6 +23,7 @@ export type RootStackParamList = {
   Report: { latitude: number; longitude: number } | undefined;
   ReportDetail: { report: BarrierReport };
   Stats: undefined;
+  Wallet: undefined;
 };
 
 export type TabParamList = {

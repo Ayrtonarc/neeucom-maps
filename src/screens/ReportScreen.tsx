@@ -19,6 +19,7 @@ import Geolocation from '@react-native-community/geolocation';
 import NetInfo from '@react-native-community/netinfo';
 
 import { createReport } from '../services/firebase';
+import { addReward } from '../services/wallet';
 import { enqueuePendingReport } from '../services/offlineCache';
 import { classifyBarrierPhoto } from '../services/gemini';
 import { categories } from '../components/CategoryInfo';
@@ -160,6 +161,7 @@ export default function ReportScreen() {
           'Tu reporte se enviará automáticamente cuando recuperes internet.',
           [{ text: 'Entendido', onPress: () => navigation.goBack() }],
         );
+        addReward('Reporte guardado (offline)', 10);
         return;
       }
 
@@ -170,7 +172,8 @@ export default function ReportScreen() {
         longitude,
         photoLocalUri: photoUri ?? undefined,
       });
-      Alert.alert('¡Gracias!', 'Reporte enviado con éxito. Ayudas a mejorar Tijuana.', [
+      addReward('Reporte de barrera enviado', 10);
+      Alert.alert('¡Gracias! +10 NIUKOM 🪙', 'Reporte enviado con éxito. Ganaste 10 tokens NIUKOM.', [
         { text: 'Ver en mapa', onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
