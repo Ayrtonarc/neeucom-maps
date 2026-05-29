@@ -7,6 +7,10 @@ import {
   query,
   orderBy,
   limit,
+  doc,
+  updateDoc,
+  increment,
+  getDoc,
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { FIREBASE_CONFIG } from '../config';
@@ -62,6 +66,31 @@ export async function createReport(data: {
   }
 
   return docRef.id;
+}
+
+/** Vota sobre un reporte. Auto-verifica si llega a 3 votos positivos. */
+export async function voteOnReport(
+  reportId: string,
+  vote: 'up' | 'down',
+): Promise<{ upvotes: number; downvotes: number; verified: boolean }> {
+  const ref = doc(db, REPORTS_COLLECTION, reportId);
+  await updateDoc(ref, {
+    [vote === 'up' ? 'upvotes' : 'downvotes']: increment(1),
+  });
+
+  const snap = await getDoc(ref);
+  const data = snap.data() ?? {};
+  const upvotes = data.upvotes ?? 0;
+  const downvotes = data.downvotes ?? 0;
+  const verified = data.verified ?? false;
+
+  // Auto-verificar si alcanza 3 votos positivos
+  if (upvotes >= 3 && !verified) {
+    await updateDoc(ref, { verified: true });
+    return { upvotes, downvotes, verified: true };
+  }
+
+  return { upvotes, downvotes, verified };
 }
 
 /** Sube los reportes pendientes guardados offline */

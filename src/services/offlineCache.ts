@@ -62,3 +62,26 @@ export async function removePendingReport(id: string): Promise<void> {
 export async function clearPendingQueue(): Promise<void> {
   await AsyncStorage.removeItem(QUEUE_KEY);
 }
+
+// ─── Tracking de votos del dispositivo ──────────────────────────────────────
+
+const VOTES_KEY = '@niukom:user_votes';
+
+export async function getUserVote(reportId: string): Promise<'up' | 'down' | null> {
+  try {
+    const raw = await AsyncStorage.getItem(VOTES_KEY);
+    const votes: Record<string, 'up' | 'down'> = raw ? JSON.parse(raw) : {};
+    return votes[reportId] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveUserVote(reportId: string, vote: 'up' | 'down'): Promise<void> {
+  try {
+    const raw = await AsyncStorage.getItem(VOTES_KEY);
+    const votes: Record<string, 'up' | 'down'> = raw ? JSON.parse(raw) : {};
+    votes[reportId] = vote;
+    await AsyncStorage.setItem(VOTES_KEY, JSON.stringify(votes));
+  } catch {}
+}

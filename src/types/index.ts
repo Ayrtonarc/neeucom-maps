@@ -14,6 +14,8 @@ export interface BarrierReport {
   longitude: number;
   createdAt: number; // timestamp ms
   verified: boolean;
+  upvotes: number;   // votos "sigue activo"
+  downvotes: number; // votos "ya se resolvió"
 }
 
 export type RootStackParamList = {
