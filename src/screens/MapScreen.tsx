@@ -250,23 +250,21 @@ export default function MapScreen() {
           />
         ))}
 
-        {walkingRoute && (
-          <Polyline
-            coordinates={walkingRoute.points}
-            strokeColor="#611232"
-            strokeWidth={5}
-            lineDashPattern={[10, 6]}
-            geodesic
-          />
-        )}
-        {transitRoute && (
-          <Polyline
-            coordinates={transitRoute.points}
-            strokeColor="#1565C0"
-            strokeWidth={5}
-            geodesic
-          />
-        )}
+        <Polyline
+          key={walkingRoute ? 'walk' : 'walk-empty'}
+          coordinates={walkingRoute?.points ?? []}
+          strokeColor="#611232"
+          strokeWidth={5}
+          lineDashPattern={[10, 6]}
+          geodesic
+        />
+        <Polyline
+          key={transitRoute ? 'transit' : 'transit-empty'}
+          coordinates={transitRoute?.points ?? []}
+          strokeColor="#1565C0"
+          strokeWidth={5}
+          geodesic
+        />
       </MapView>
 
       {loading && (
