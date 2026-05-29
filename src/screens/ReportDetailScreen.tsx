@@ -27,9 +27,14 @@ export default function ReportDetailScreen() {
   const [verified, setVerified] = useState(report.verified);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
   const [voting, setVoting] = useState(false);
+  const isMounted = React.useRef(true);
 
   useEffect(() => {
-    getUserVote(report.id).then(setUserVote);
+    isMounted.current = true;
+    getUserVote(report.id).then(v => {
+      if (isMounted.current) setUserVote(v);
+    });
+    return () => { isMounted.current = false; };
   }, [report.id]);
 
   const handleVote = async (vote: 'up' | 'down') => {
@@ -37,21 +42,26 @@ export default function ReportDetailScreen() {
       Alert.alert('Ya votaste', 'Solo puedes votar una vez por reporte.');
       return;
     }
+    // Guardar el voto localmente de inmediato (fire-and-forget) para evitar
+    // carrera con getUserVote si el usuario vuelve a abrir el reporte rápido
+    saveUserVote(report.id, vote);
     setVoting(true);
     try {
       const result = await voteOnReport(report.id, vote);
+      if (!isMounted.current) return; // componente desmontado, no actualizar estado
       setUpvotes(result.upvotes);
       setDownvotes(result.downvotes);
       setVerified(result.verified);
       setUserVote(vote);
-      await saveUserVote(report.id, vote);
       if (result.verified && !report.verified) {
         Alert.alert('✅ ¡Verificado!', 'Este reporte alcanzó 3 votos y ha sido verificado por la comunidad.');
       }
     } catch {
-      Alert.alert('Error', 'No se pudo registrar tu voto. Revisa tu conexión.');
+      if (isMounted.current) {
+        Alert.alert('Error', 'No se pudo registrar tu voto. Revisa tu conexión.');
+      }
     } finally {
-      setVoting(false);
+      if (isMounted.current) setVoting(false);
     }
   };
 
