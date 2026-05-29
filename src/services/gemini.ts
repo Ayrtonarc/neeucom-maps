@@ -32,7 +32,7 @@ export async function classifyBarrierPhoto(
     const base64 = await RNFS.readFile(photoUri, 'base64');
     const mimeType = photoUri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const result = await model.generateContent([
       CATEGORY_PROMPT,
