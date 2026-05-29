@@ -401,9 +401,18 @@ export default function MapScreen() {
               ) : transitError ? (
                 <View style={styles.transitErrorBox}>
                   <Text style={styles.transitErrorText}>⚠️ {transitError}</Text>
-                  <Pressable onPress={() => handleOpenInMaps('transit')} accessibilityLabel="Ver transporte en Google Maps">
-                    <Text style={styles.openMapsLink}>Ver opciones en Google Maps ↗</Text>
-                  </Pressable>
+                  <View style={styles.transitErrorActions}>
+                    <Pressable
+                      onPress={handleCalculateTransit}
+                      style={styles.recalcBtn}
+                      accessibilityLabel="Reintentar ruta en camión"
+                    >
+                      <Text style={styles.recalcBtnText}>↺ Reintentar</Text>
+                    </Pressable>
+                    <Pressable onPress={() => handleOpenInMaps('transit')} accessibilityLabel="Ver transporte en Google Maps">
+                      <Text style={styles.openMapsLink}>Ver en Google Maps ↗</Text>
+                    </Pressable>
+                  </View>
                 </View>
               ) : (
                 <Pressable
@@ -421,10 +430,7 @@ export default function MapScreen() {
               )}
             </View>
 
-            {/* Footer: cerrar */}
-            <Pressable style={styles.closeRouteFooter} onPress={handleCloseRoute} accessibilityLabel="Cerrar tarjeta del hospital">
-              <Text style={styles.closeRouteFooterText}>Cerrar</Text>
-            </Pressable>
+            {/* Footer: cerrar — removed; use ✕ in header */}
           </ScrollView>
         </View>
       )}
@@ -636,55 +642,12 @@ const styles = StyleSheet.create({
   },
   routeBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   sectionDivider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 4 },
-  transitErrorBox: { backgroundColor: '#FFF3E0', borderRadius: 10, padding: 10, gap: 6 },
+  transitErrorBox: { backgroundColor: '#FFF3E0', borderRadius: 10, padding: 10, gap: 8 },
   transitErrorText: { fontSize: 12, color: '#E65100' },
+  transitErrorActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   transitStepRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
   transitStepIcon: { fontSize: 17, marginRight: 8, width: 24 },
   transitStepText: { fontSize: 13, color: '#333', fontWeight: '500' },
   transitStepSub: { fontSize: 11, color: '#888', marginTop: 1 },
-  closeRouteFooter: {
-    marginTop: 10,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    alignItems: 'center',
-  },
-  closeRouteFooterText: { fontSize: 13, color: '#888', fontWeight: '600' },
-  // legacy — kept for unused refs safety
-  routeResultRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  routeResultText: { fontSize: 14, fontWeight: '700', color: '#333' },
-  routeInfo: { gap: 4 },
-  routeInfoText: { fontSize: 15, fontWeight: '700', color: '#611232' },
-  routeInfoSub: { fontSize: 11, color: '#777' },
-  routeActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  routeBtnPrimary: {
-    backgroundColor: '#611232',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  routeBtnTransit: {
-    backgroundColor: '#1565C0',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  routeBtnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  routeBtnSecondary: {
-    borderWidth: 1.5,
-    borderColor: '#611232',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  routeBtnSecondaryText: { color: '#611232', fontWeight: '700', fontSize: 13 },
-  transitBlock: { marginTop: 2 },
-  transitSteps: { maxHeight: 130, marginTop: 4 },
   legendDash: { width: 16, height: 4, backgroundColor: '#611232', borderRadius: 2, opacity: 0.7 },
 });

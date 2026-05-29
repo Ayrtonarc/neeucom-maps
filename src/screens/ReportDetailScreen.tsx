@@ -27,6 +27,7 @@ export default function ReportDetailScreen() {
   const [verified, setVerified] = useState(report.verified);
   const [userVote, setUserVote] = useState<'up' | 'down' | null>(null);
   const [voting, setVoting] = useState(false);
+  const [votingDir, setVotingDir] = useState<'up' | 'down' | null>(null);
   const isMounted = React.useRef(true);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function ReportDetailScreen() {
     // Guardar el voto localmente de inmediato (fire-and-forget) para evitar
     // carrera con getUserVote si el usuario vuelve a abrir el reporte rápido
     saveUserVote(report.id, vote);
+    setVotingDir(vote);
     setVoting(true);
     try {
       const result = await voteOnReport(report.id, vote);
@@ -61,7 +63,10 @@ export default function ReportDetailScreen() {
         Alert.alert('Error', 'No se pudo registrar tu voto. Revisa tu conexión.');
       }
     } finally {
-      if (isMounted.current) setVoting(false);
+      if (isMounted.current) {
+        setVoting(false);
+        setVotingDir(null);
+      }
     }
   };
 
@@ -142,7 +147,8 @@ export default function ReportDetailScreen() {
             style={[
               styles.voteBtn,
               styles.voteBtnUp,
-              userVote === 'up' && styles.voteBtnActive,
+              userVote === 'up' && styles.voteBtnChosen,
+              userVote === 'down' && styles.voteBtnDimmed,
               voting && { opacity: 0.6 },
             ]}
             onPress={() => handleVote('up')}
@@ -151,8 +157,8 @@ export default function ReportDetailScreen() {
             accessibilityLabel={`Votar que sigue activa. ${upvotes} votos`}
             accessibilityState={{ disabled: voting || !!userVote }}
           >
-            {voting && userVote === null
-              ? <ActivityIndicator color="#fff" size="small" />
+            {voting && votingDir === 'up'
+              ? <ActivityIndicator color="#388E3C" size="small" />
               : <>
                   <Text style={styles.voteBtnEmoji}>👍</Text>
                   <Text style={styles.voteBtnText}>Sigue activa</Text>
@@ -165,7 +171,8 @@ export default function ReportDetailScreen() {
             style={[
               styles.voteBtn,
               styles.voteBtnDown,
-              userVote === 'down' && styles.voteBtnActive,
+              userVote === 'down' && styles.voteBtnChosen,
+              userVote === 'up' && styles.voteBtnDimmed,
               voting && { opacity: 0.6 },
             ]}
             onPress={() => handleVote('down')}
@@ -174,9 +181,14 @@ export default function ReportDetailScreen() {
             accessibilityLabel={`Votar que ya se resolvió. ${downvotes} votos`}
             accessibilityState={{ disabled: voting || !!userVote }}
           >
-            <Text style={styles.voteBtnEmoji}>👎</Text>
-            <Text style={styles.voteBtnText}>Ya se resolvió</Text>
-            <Text style={styles.voteBtnCount}>{downvotes}</Text>
+            {voting && votingDir === 'down'
+              ? <ActivityIndicator color="#D32F2F" size="small" />
+              : <>
+                  <Text style={styles.voteBtnEmoji}>👎</Text>
+                  <Text style={styles.voteBtnText}>Ya se resolvió</Text>
+                  <Text style={styles.voteBtnCount}>{downvotes}</Text>
+                </>
+            }
           </Pressable>
         </View>
         {upvotes < 3 && (
@@ -256,7 +268,8 @@ const styles = StyleSheet.create({
   },
   voteBtnUp: { borderColor: '#388E3C', backgroundColor: '#F1F8E9' },
   voteBtnDown: { borderColor: '#D32F2F', backgroundColor: '#FFEBEE' },
-  voteBtnActive: { opacity: 0.55 },
+  voteBtnChosen: { borderWidth: 3 },
+  voteBtnDimmed: { opacity: 0.3 },
   voteBtnEmoji: { fontSize: 20 },
   voteBtnText: { fontSize: 11, fontWeight: '600', color: '#333' },
   voteBtnCount: { fontSize: 18, fontWeight: '800', color: '#222' },
