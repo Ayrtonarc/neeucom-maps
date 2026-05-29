@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
+  PermissionsAndroid,
   Platform,
   Pressable,
   ScrollView,
@@ -15,8 +16,10 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
+import NetInfo from '@react-native-community/netinfo';
 
 import { createReport } from '../services/firebase';
+import { enqueuePendingReport } from '../services/offlineCache';
 import { classifyBarrierPhoto } from '../services/gemini';
 import { categories } from '../components/CategoryInfo';
 import type { ReportCategory, RootStackParamList } from '../types';
@@ -71,10 +74,7 @@ export default function ReportScreen() {
     Alert.alert('Agregar foto', 'Elige una opción', [
       {
         text: 'Cámara',
-        onPress: () =>
-          launchCamera({ mediaType: 'photo', quality: 0.7 }, res => {
-            if (res.assets?.[0]?.uri) handlePhotoSelected(res.assets[0].uri!);
-          }),
+        onPress: () => openCamera(),
       },
       {
         text: 'Galería',
@@ -85,6 +85,36 @@ export default function ReportScreen() {
       },
       { text: 'Cancelar', style: 'cancel' },
     ]);
+  };
+
+  const openCamera = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        {
+          title: 'Permiso de cámara',
+          message: 'NiukomMaps necesita acceso a la cámara para fotografiar la barrera.',
+          buttonNeutral: 'Preguntar después',
+          buttonNegative: 'Cancelar',
+          buttonPositive: 'Permitir',
+        },
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        Alert.alert(
+          'Permiso denegado',
+          'Sin permiso de cámara no se puede tomar foto. Puedes habilitarlo en Ajustes → Aplicaciones → NiukomMaps.',
+        );
+        return;
+      }
+    }
+    launchCamera({ mediaType: 'photo', quality: 0.7, saveToPhotos: false }, res => {
+      if (res.errorCode) {
+        console.error('[Camera] error:', res.errorCode, res.errorMessage);
+        Alert.alert('Error de cámara', res.errorMessage ?? 'No se pudo abrir la cámara.');
+        return;
+      }
+      if (res.assets?.[0]?.uri) handlePhotoSelected(res.assets[0].uri!);
+    });
   };
 
   const handlePhotoSelected = async (uri: string) => {
@@ -114,6 +144,25 @@ export default function ReportScreen() {
     }
     setSubmitting(true);
     try {
+      const netState = await NetInfo.fetch();
+      const online = !!(netState.isConnected && netState.isInternetReachable !== false);
+
+      if (!online) {
+        await enqueuePendingReport({
+          category,
+          description: description.trim(),
+          latitude,
+          longitude,
+          photoLocalUri: photoUri ?? undefined,
+        });
+        Alert.alert(
+          '📥 Guardado sin conexión',
+          'Tu reporte se enviará automáticamente cuando recuperes internet.',
+          [{ text: 'Entendido', onPress: () => navigation.goBack() }],
+        );
+        return;
+      }
+
       await createReport({
         category,
         description: description.trim(),

@@ -55,15 +55,36 @@ export async function createReport(data: {
     try {
       const { updateDoc, doc } = await import('firebase/firestore');
       const photoUrl = await uploadReportPhoto(data.photoLocalUri, docRef.id);
-      console.log('[Firebase] foto subida OK:', photoUrl);
       await updateDoc(doc(db, REPORTS_COLLECTION, docRef.id), { photoUrl });
-    } catch (err) {
-      console.error('[Firebase] error subiendo foto:', err);
+    } catch (_) {
       // La foto falla sin romper el reporte
     }
   }
 
   return docRef.id;
+}
+
+/** Sube los reportes pendientes guardados offline */
+export async function syncPendingReports(): Promise<number> {
+  const { loadPendingQueue, removePendingReport } = await import('./offlineCache');
+  const queue = await loadPendingQueue();
+  let synced = 0;
+  for (const pending of queue) {
+    try {
+      await createReport({
+        category: pending.category,
+        description: pending.description,
+        latitude: pending.latitude,
+        longitude: pending.longitude,
+        photoLocalUri: pending.photoLocalUri,
+      });
+      await removePendingReport(pending.id);
+      synced++;
+    } catch {
+      // Si falla uno, continúa con el siguiente
+    }
+  }
+  return synced;
 }
 
 /** Suscripción en tiempo real a los últimos 100 reportes */
@@ -81,8 +102,6 @@ export function subscribeToReports(
       id: d.id,
       ...(d.data() as Omit<BarrierReport, 'id'>),
     }));
-    const withPhoto = reports.filter(r => r.photoUrl).length;
-    console.log(`[Firebase] reportes: ${reports.length} totales, ${withPhoto} con foto`);
     callback(reports);
   });
 }
