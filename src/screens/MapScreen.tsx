@@ -20,7 +20,7 @@ import { TIJUANA_INITIAL_REGION } from '../config';
 import { subscribeToReports, syncPendingReports } from '../services/firebase';
 import { saveReportsCache, loadReportsCache } from '../services/offlineCache';
 import { fetchImssHospitals, type ImssFacility } from '../services/places';
-import { getWalkingRoute, type RouteResult } from '../services/directions';
+import { getWalkingRoute, getTransitRoute, type RouteResult, type TransitRouteResult } from '../services/directions';
 import type { BarrierReport, RootStackParamList } from '../types';
 import { categoryInfo } from '../components/CategoryInfo';
 
@@ -37,8 +37,10 @@ export default function MapScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [selectedImss, setSelectedImss] = useState<ImssFacility | null>(null);
-  const [activeRoute, setActiveRoute] = useState<RouteResult | null>(null);
+  const [walkingRoute, setWalkingRoute] = useState<RouteResult | null>(null);
+  const [transitRoute, setTransitRoute] = useState<TransitRouteResult | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
+  const [loadingTransit, setLoadingTransit] = useState(false);
 
   // Rastrear ubicación del usuario para el botón FAB
   useEffect(() => {
@@ -86,7 +88,8 @@ export default function MapScreen() {
 
   const handleImssPress = (facility: ImssFacility) => {
     setSelectedImss(facility);
-    setActiveRoute(null);
+    setWalkingRoute(null);
+    setTransitRoute(null);
     mapRef.current?.animateToRegion(
       { latitude: facility.lat, longitude: facility.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
       500,
@@ -105,7 +108,7 @@ export default function MapScreen() {
         userLocation,
         { latitude: selectedImss.lat, longitude: selectedImss.lng },
       );
-      setActiveRoute(route);
+      setWalkingRoute(route);
       // Ajustar cámara para mostrar toda la ruta
       const allPoints = [userLocation, { latitude: selectedImss.lat, longitude: selectedImss.lng }];
       mapRef.current?.fitToCoordinates(allPoints, {
@@ -119,15 +122,41 @@ export default function MapScreen() {
     }
   };
 
-  const handleOpenInMaps = () => {
+  const handleCalculateTransit = async () => {
+    if (!userLocation) {
+      Alert.alert('Sin ubicación', 'Esperando señal GPS. Asegúrate de tener la ubicación activada.');
+      return;
+    }
     if (!selectedImss) return;
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedImss.lat},${selectedImss.lng}&travelmode=walking`;
+    setLoadingTransit(true);
+    try {
+      const route = await getTransitRoute(
+        userLocation,
+        { latitude: selectedImss.lat, longitude: selectedImss.lng },
+      );
+      setTransitRoute(route);
+      const allPoints = [userLocation, { latitude: selectedImss.lat, longitude: selectedImss.lng }];
+      mapRef.current?.fitToCoordinates(allPoints, {
+        edgePadding: { top: 80, right: 40, bottom: 300, left: 40 },
+        animated: true,
+      });
+    } catch (err: any) {
+      Alert.alert('Sin rutas de transporte', err.message);
+    } finally {
+      setLoadingTransit(false);
+    }
+  };
+
+  const handleOpenInMaps = (mode: 'walking' | 'transit' = 'walking') => {
+    if (!selectedImss) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedImss.lat},${selectedImss.lng}&travelmode=${mode}`;
     Linking.openURL(url);
   };
 
   const handleCloseRoute = () => {
     setSelectedImss(null);
-    setActiveRoute(null);
+    setWalkingRoute(null);
+    setTransitRoute(null);
   };
 
   const toggleImssLayer = async () => {
@@ -217,12 +246,20 @@ export default function MapScreen() {
           />
         ))}
 
-        {activeRoute && (
+        {walkingRoute && (
           <Polyline
-            coordinates={activeRoute.points}
+            coordinates={walkingRoute.points}
             strokeColor="#611232"
             strokeWidth={5}
             lineDashPattern={[10, 6]}
+            geodesic
+          />
+        )}
+        {transitRoute && (
+          <Polyline
+            coordinates={transitRoute.points}
+            strokeColor="#1565C0"
+            strokeWidth={5}
             geodesic
           />
         )}
@@ -268,20 +305,17 @@ export default function MapScreen() {
             </Pressable>
           </View>
 
-          {activeRoute ? (
-            <View style={styles.routeInfo}>
-              <Text style={styles.routeInfoText}>🚶 {activeRoute.durationText} · {activeRoute.distanceText}</Text>
-              <Text style={styles.routeInfoSub}>Ruta peatonal · evita carreteras</Text>
-              <View style={styles.routeActions}>
-                <Pressable style={styles.routeBtnSecondary} onPress={handleOpenInMaps}
-                  accessibilityLabel="Abrir ruta en Google Maps">
-                  <Text style={styles.routeBtnSecondaryText}>Abrir en Maps</Text>
-                </Pressable>
-                <Pressable style={[styles.routeBtnPrimary, { flex: 1 }]} onPress={handleCloseRoute}
-                  accessibilityLabel="Cerrar ruta">
-                  <Text style={styles.routeBtnPrimaryText}>✕ Cerrar ruta</Text>
-                </Pressable>
+          {/* Fila ruta a pie */}
+          {walkingRoute ? (
+            <View style={styles.routeResultRow}>
+              <View style={[styles.routeModeDot, { backgroundColor: '#611232' }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.routeResultText}>🚶 {walkingRoute.durationText} · {walkingRoute.distanceText}</Text>
+                <Text style={styles.routeResultSub}>Ruta peatonal accesible · evita carreteras</Text>
               </View>
+              <Pressable onPress={() => handleOpenInMaps('walking')} accessibilityLabel="Abrir ruta a pie en Google Maps">
+                <Text style={styles.openMapsLink}>Maps ↗</Text>
+              </Pressable>
             </View>
           ) : (
             <Pressable
@@ -293,7 +327,59 @@ export default function MapScreen() {
             >
               {loadingRoute
                 ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.routeBtnPrimaryText}>♿ Trazar ruta accesible a pie</Text>
+                : <Text style={styles.routeBtnPrimaryText}>♿ Ruta accesible a pie</Text>
+              }
+            </Pressable>
+          )}
+
+          {/* Fila transporte público */}
+          {transitRoute ? (
+            <View style={styles.transitBlock}>
+              <View style={styles.routeResultRow}>
+                <View style={[styles.routeModeDot, { backgroundColor: '#1565C0' }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.routeResultText}>🚌 {transitRoute.durationText} · {transitRoute.distanceText}</Text>
+                  {transitRoute.departureTime ? (
+                    <Text style={styles.routeResultSub}>Sale: {transitRoute.departureTime} → Llega: {transitRoute.arrivalTime}</Text>
+                  ) : null}
+                </View>
+                <Pressable onPress={() => handleOpenInMaps('transit')} accessibilityLabel="Abrir ruta en transporte en Google Maps">
+                  <Text style={styles.openMapsLink}>Maps ↗</Text>
+                </Pressable>
+              </View>
+              {/* Pasos del transporte */}
+              <ScrollView style={styles.transitSteps} nestedScrollEnabled>
+                {transitRoute.steps.map((step, i) => (
+                  <View key={i} style={styles.transitStepRow}>
+                    <Text style={styles.transitStepIcon}>{step.vehicleIcon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.transitStepText} numberOfLines={2}>
+                        {step.travelMode === 'TRANSIT'
+                          ? `${step.lineName}${step.headsign ? ` → ${step.headsign}` : ''}`
+                          : step.instruction}
+                      </Text>
+                      {step.numStops > 0 && (
+                        <Text style={styles.transitStepSub}>{step.numStops} paradas · {step.durationText}</Text>
+                      )}
+                      {step.numStops === 0 && (
+                        <Text style={styles.transitStepSub}>{step.durationText} · {step.distanceText}</Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.routeBtnTransit, loadingTransit && { opacity: 0.7 }]}
+              onPress={handleCalculateTransit}
+              disabled={loadingTransit}
+              accessibilityLabel="Calcular ruta en transporte público"
+              accessibilityState={{ busy: loadingTransit }}
+            >
+              {loadingTransit
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.routeBtnPrimaryText}>🚌 Cómo llegar en camión</Text>
               }
             </Pressable>
           )}
@@ -475,6 +561,11 @@ const styles = StyleSheet.create({
   },
   a11yBadgeText: { fontSize: 11, color: '#2E7D32', fontWeight: '600' },
   closeBtnRoute: { padding: 4 },
+  routeResultRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  routeModeDot: { width: 10, height: 10, borderRadius: 5 },
+  routeResultText: { fontSize: 14, fontWeight: '700', color: '#333' },
+  routeResultSub: { fontSize: 11, color: '#777' },
+  openMapsLink: { fontSize: 12, color: '#1565C0', fontWeight: '700', marginLeft: 4 },
   routeInfo: { gap: 4 },
   routeInfoText: { fontSize: 15, fontWeight: '700', color: '#611232' },
   routeInfoSub: { fontSize: 11, color: '#777' },
@@ -485,6 +576,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
+  },
+  routeBtnTransit: {
+    backgroundColor: '#1565C0',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
   },
   routeBtnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   routeBtnSecondary: {
@@ -497,4 +597,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   routeBtnSecondaryText: { color: '#611232', fontWeight: '700', fontSize: 13 },
+  transitBlock: { marginTop: 2 },
+  transitSteps: { maxHeight: 130, marginTop: 4 },
+  transitStepRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 5, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  transitStepIcon: { fontSize: 18, marginRight: 8, width: 24 },
+  transitStepText: { fontSize: 13, color: '#333', fontWeight: '500' },
+  transitStepSub: { fontSize: 11, color: '#888', marginTop: 1 },
 });
