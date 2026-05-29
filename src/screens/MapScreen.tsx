@@ -3,12 +3,14 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import MapView, { Callout, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Callout, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Geolocation from '@react-native-community/geolocation';
@@ -18,6 +20,7 @@ import { TIJUANA_INITIAL_REGION } from '../config';
 import { subscribeToReports, syncPendingReports } from '../services/firebase';
 import { saveReportsCache, loadReportsCache } from '../services/offlineCache';
 import { fetchImssHospitals, type ImssFacility } from '../services/places';
+import { getWalkingRoute, type RouteResult } from '../services/directions';
 import type { BarrierReport, RootStackParamList } from '../types';
 import { categoryInfo } from '../components/CategoryInfo';
 
@@ -33,6 +36,9 @@ export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [isOffline, setIsOffline] = useState(false);
+  const [selectedImss, setSelectedImss] = useState<ImssFacility | null>(null);
+  const [activeRoute, setActiveRoute] = useState<RouteResult | null>(null);
+  const [loadingRoute, setLoadingRoute] = useState(false);
 
   // Rastrear ubicación del usuario para el botón FAB
   useEffect(() => {
@@ -77,6 +83,52 @@ export default function MapScreen() {
     });
     return unsubNet;
   }, []);
+
+  const handleImssPress = (facility: ImssFacility) => {
+    setSelectedImss(facility);
+    setActiveRoute(null);
+    mapRef.current?.animateToRegion(
+      { latitude: facility.lat, longitude: facility.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+      500,
+    );
+  };
+
+  const handleCalculateRoute = async () => {
+    if (!userLocation) {
+      Alert.alert('Sin ubicación', 'Esperando señal GPS. Asegúrate de tener la ubicación activada.');
+      return;
+    }
+    if (!selectedImss) return;
+    setLoadingRoute(true);
+    try {
+      const route = await getWalkingRoute(
+        userLocation,
+        { latitude: selectedImss.lat, longitude: selectedImss.lng },
+      );
+      setActiveRoute(route);
+      // Ajustar cámara para mostrar toda la ruta
+      const allPoints = [userLocation, { latitude: selectedImss.lat, longitude: selectedImss.lng }];
+      mapRef.current?.fitToCoordinates(allPoints, {
+        edgePadding: { top: 80, right: 40, bottom: 260, left: 40 },
+        animated: true,
+      });
+    } catch (err: any) {
+      Alert.alert('Error al calcular ruta', err.message);
+    } finally {
+      setLoadingRoute(false);
+    }
+  };
+
+  const handleOpenInMaps = () => {
+    if (!selectedImss) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedImss.lat},${selectedImss.lng}&travelmode=walking`;
+    Linking.openURL(url);
+  };
+
+  const handleCloseRoute = () => {
+    setSelectedImss(null);
+    setActiveRoute(null);
+  };
 
   const toggleImssLayer = async () => {
     if (!showImss && imssFacilities.length === 0) {
@@ -155,26 +207,25 @@ export default function MapScreen() {
           );
         })}
 
-        {showImss && imssFacilities.map(facility => {
-          const a11y = [
-            facility.wheelchairEntrance && '♿ Entrada accesible',
-            facility.wheelchairParking  && '🅿️ Estacionamiento accesible',
-            facility.wheelchairRestroom && '🚻 Baño accesible',
-          ].filter(Boolean);
-          const desc = a11y.length > 0
-            ? a11y.join(' · ')
-            : facility.address;
-          return (
-            <Marker
-              key={facility.place_id}
-              coordinate={{ latitude: facility.lat, longitude: facility.lng }}
-              title={facility.name}
-              description={desc}
-              pinColor="#0277BD"
-              accessibilityLabel={`Hospital IMSS: ${facility.name}. ${desc}`}
-            />
-          );
-        })}
+        {showImss && imssFacilities.map(facility => (
+          <Marker
+            key={facility.place_id}
+            coordinate={{ latitude: facility.lat, longitude: facility.lng }}
+            pinColor={selectedImss?.place_id === facility.place_id ? '#FF6F00' : '#0277BD'}
+            onPress={() => handleImssPress(facility)}
+            accessibilityLabel={`Hospital IMSS: ${facility.name}. Toca para ver ruta accesible.`}
+          />
+        ))}
+
+        {activeRoute && (
+          <Polyline
+            coordinates={activeRoute.points}
+            strokeColor="#611232"
+            strokeWidth={5}
+            lineDashPattern={[10, 6]}
+            geodesic
+          />
+        )}
       </MapView>
 
       {loading && (
@@ -186,6 +237,66 @@ export default function MapScreen() {
         >
           <ActivityIndicator size="large" color="#611232" />
           <Text style={styles.loadingText}>Cargando mapa…</Text>
+        </View>
+      )}
+
+      {/* Tarjeta de hospital IMSS seleccionado */}
+      {selectedImss && (
+        <View style={styles.routeCard}>
+          <View style={styles.routeCardHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.routeCardTitle} numberOfLines={2}>{selectedImss.name}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                <View style={styles.a11yBadgesRow}>
+                  {selectedImss.wheelchairEntrance && (
+                    <View style={styles.a11yBadge}><Text style={styles.a11yBadgeText}>♿ Entrada</Text></View>
+                  )}
+                  {selectedImss.wheelchairParking && (
+                    <View style={styles.a11yBadge}><Text style={styles.a11yBadgeText}>🅿️ Estacionamiento</Text></View>
+                  )}
+                  {selectedImss.wheelchairRestroom && (
+                    <View style={styles.a11yBadge}><Text style={styles.a11yBadgeText}>🚻 Baño</Text></View>
+                  )}
+                  {!selectedImss.wheelchairEntrance && !selectedImss.wheelchairParking && !selectedImss.wheelchairRestroom && (
+                    <View style={[styles.a11yBadge, { backgroundColor: '#eee' }]}><Text style={[styles.a11yBadgeText, { color: '#888' }]}>Sin datos de accesibilidad</Text></View>
+                  )}
+                </View>
+              </ScrollView>
+            </View>
+            <Pressable onPress={handleCloseRoute} style={styles.closeBtnRoute} accessibilityLabel="Cerrar ruta">
+              <Text style={{ fontSize: 18, color: '#555' }}>✕</Text>
+            </Pressable>
+          </View>
+
+          {activeRoute ? (
+            <View style={styles.routeInfo}>
+              <Text style={styles.routeInfoText}>🚶 {activeRoute.durationText} · {activeRoute.distanceText}</Text>
+              <Text style={styles.routeInfoSub}>Ruta peatonal · evita carreteras</Text>
+              <View style={styles.routeActions}>
+                <Pressable style={styles.routeBtnSecondary} onPress={handleOpenInMaps}
+                  accessibilityLabel="Abrir ruta en Google Maps">
+                  <Text style={styles.routeBtnSecondaryText}>Abrir en Maps</Text>
+                </Pressable>
+                <Pressable style={[styles.routeBtnPrimary, { flex: 1 }]} onPress={handleCloseRoute}
+                  accessibilityLabel="Cerrar ruta">
+                  <Text style={styles.routeBtnPrimaryText}>✕ Cerrar ruta</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.routeBtnPrimary, loadingRoute && { opacity: 0.7 }]}
+              onPress={handleCalculateRoute}
+              disabled={loadingRoute}
+              accessibilityLabel="Calcular ruta accesible a pie"
+              accessibilityState={{ busy: loadingRoute }}
+            >
+              {loadingRoute
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.routeBtnPrimaryText}>♿ Trazar ruta accesible a pie</Text>
+              }
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -335,4 +446,55 @@ const styles = StyleSheet.create({
   calloutTitle: { fontSize: 13, fontWeight: '700', color: '#222' },
   calloutDesc: { fontSize: 11, color: '#555', lineHeight: 15 },
   calloutHint: { fontSize: 10, color: '#611232', marginTop: 4, textAlign: 'right' },
+  // ─── Tarjeta de ruta ──────────────────────────────────────────────────────
+  routeCard: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    paddingBottom: 28,
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -3 },
+    gap: 10,
+  },
+  routeCardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  routeCardTitle: { fontSize: 15, fontWeight: '700', color: '#222', flexShrink: 1 },
+  a11yBadgesRow: { flexDirection: 'row', gap: 6 },
+  a11yBadge: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  a11yBadgeText: { fontSize: 11, color: '#2E7D32', fontWeight: '600' },
+  closeBtnRoute: { padding: 4 },
+  routeInfo: { gap: 4 },
+  routeInfoText: { fontSize: 15, fontWeight: '700', color: '#611232' },
+  routeInfoSub: { fontSize: 11, color: '#777' },
+  routeActions: { flexDirection: 'row', gap: 8, marginTop: 6 },
+  routeBtnPrimary: {
+    backgroundColor: '#611232',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routeBtnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  routeBtnSecondary: {
+    borderWidth: 1.5,
+    borderColor: '#611232',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routeBtnSecondaryText: { color: '#611232', fontWeight: '700', fontSize: 13 },
 });
