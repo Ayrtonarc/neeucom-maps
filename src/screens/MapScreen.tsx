@@ -42,12 +42,19 @@ export default function MapScreen() {
   const [transitError, setTransitError] = useState<string | null>(null);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [loadingTransit, setLoadingTransit] = useState(false);
+  const [gpsError, setGpsError] = useState(false);
 
-  // Rastrear ubicación del usuario para el botón FAB
+  // Rastrear ubicación del usuario
   useEffect(() => {
+    Geolocation.requestAuthorization();
     const watchId = Geolocation.watchPosition(
-      pos => setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => {},
+      pos => {
+        setGpsError(false);
+        setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      },
+      _err => {
+        setGpsError(true);
+      },
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000, distanceFilter: 10 },
     );
     return () => Geolocation.clearWatch(watchId);
@@ -199,6 +206,13 @@ export default function MapScreen() {
         <View style={styles.offlineBanner} accessibilityLiveRegion="polite">
           <Text style={styles.offlineBannerText}>
             📵 Sin conexión — mostrando datos en caché
+          </Text>
+        </View>
+      )}
+      {gpsError && (
+        <View style={[styles.offlineBanner, { backgroundColor: '#B71C1C', top: isOffline ? 32 : 0 }]} accessibilityLiveRegion="polite">
+          <Text style={styles.offlineBannerText}>
+            📍 GPS no disponible — activa la ubicación del dispositivo
           </Text>
         </View>
       )}
